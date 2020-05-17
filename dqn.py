@@ -1,5 +1,5 @@
 from utils import *
 
-class DQN():
+class Q_Learning():
     def __init__(self):
         pass

@@ -3,6 +3,7 @@
 # platform: osx-64
 absl-py=0.9.0=py38h32f6830_1
 blas=1.0=mkl
+box2d=2.3.10=pypi_0
 c-ares=1.15.0=h01d97ff_1001
 ca-certificates=2020.4.5.1=hecc5488_0
 certifi=2020.4.5.1=py38h32f6830_0

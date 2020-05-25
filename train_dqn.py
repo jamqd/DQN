@@ -1,30 +1,55 @@
 import torch
+from torch import optim
+import torch.nn.functional as F
 from dqn import DQN
 import gym
 import numpy as np
-
-def loss(s, a, r, s_prime, q_prime, dqn, dqn_prime):
+from trajectory_dataset import TrajectoryDataset  
+def loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     """
     param:
-        s : N x |S|
-        a : N x |A|
-        s_prime
+        s : (N, |S|)
+        a : batch of one hot representations of actions (N, |A|)
+        r : batch of rewards (N,)
+        s_prime : (N, |S|)
+        q_
+
 
     return:
         a scalar value representing the loss
     """
-    pass
+    q = dqn.forward(s, a)
+
+    if dqn_prime: # using ddqn
+        target = 0
+    else:
+        target = r + discount_factor * dqn
+    target.detach() # do not propogate graidents through target
+    return F.mse_loss(q, target)
 
 def train(
     learning_rate=0.001,
     discount_factor=0.99,
     env_name="LunarLander-v2",
-    iterations=1000
+    iterations=1000,
+    episodes_per_iteration=100,
+    use_ddqn=False,
+    batch_size=128,
+    n_threads=1
 ):
+    """
+    param:
+        learning_rate:
+        
+    return:
+        None
+
+    """
 
 
     env = gym.make(env_name)
     if not isinstance(env.action_space, gym.space.discrete.Discrete):
+        print("Action space for env {} is not discrete".formt(env_name))
         raise ValueError
 
     action_space_dim = env.action_space.n
@@ -32,13 +57,44 @@ def train(
 
 
     dqn = DQN(action_space_d)
-    dqn_prime = DQN(action_space_d)
 
+    init_trajectories = collect_trajectories() # fill later
+    dataset = TrajectoryDataset(init_trajectories)
+    dataloader = torch.utils.data.DataLoader(dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=n_threads))
+
+
+
+    dqn_prime=None
+    if use_ddqn:
+        dqn_prime = DQN(action_space_d)
+
+    optimizer = optim.Adam(dqn.parameters())
+
+
+    
 
     for i in iterations:
-        loss = 0
-        loss.backwards()
-
         # collect trajectories
+        
+
+        trajectories = collect_trajectories()
+        dataset.add(trajectories)
+        dataloader = torch.utils.data.DataLoader(dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=n_threads))
+
 
         # fitted Q-iteration
+        for (s, a, r, s_prime, a) in dataloader:
+            loss = loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        
+
+        

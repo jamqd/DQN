@@ -16,7 +16,24 @@ class DQN(nn.Module):
         x  = F.relu(self.fc2(x))
         return self.fc3(x)
 
+    def forward_best_actions(self, state):
+        """
+            param:
+                state: batch of states, shape: (N, |S|)
+            return:
+                best_action: a one hot representation of 
+                best_q: Q(state, best_action)
+        """
+        best_action = 0
+        best_q = float("-inf")
+        for i in range(self.action_dim):
+            action = []
+            q = forward(states)
+            if q > best_q:
+                best_action = action
+                best_q = q
 
-    def forward_all_actions(self, state):
-        action = []
-        return self.forward(state, action)
+
+        return best_action, best_q
+
+   

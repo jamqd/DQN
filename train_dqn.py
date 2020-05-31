@@ -89,7 +89,7 @@ def train(
 
 
         # fitted Q-iteration
-        for (s, a, r, s_prime, a) in dataloader:
+        for (s, a, r, s_prime, a_prime) in dataloader:
             loss = loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
             optimizer.zero_grad()
             loss.backward()

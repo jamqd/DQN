@@ -11,10 +11,19 @@ class DQN(nn.Module):
         self.fc3 = nn.linear(256, 1)
 
     def forward(self, state, action):
+        """
+            param:
+                state: batch of states, shape: (N, |S|)
+                action: batch of actions, shape: (N,)
+            return:
+                q: Q-value, Q(state, value)
+        """
+
         state_action = torch.cat(state, action dim=1)
         x = F.relu(self.fc1(state_aciton))
         x  = F.relu(self.fc2(x))
-        return self.fc3(x)
+        q = self.fc3(x)
+        return q
 
     def forward_best_actions(self, state):
         """

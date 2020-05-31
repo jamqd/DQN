@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from dqn import DQN
 import gym
 import numpy as np
-from trajectory_dataset import TrajectoryDataset  
+from trajectory_dataset import TrajectoryDataset
+from qvalues import compute_q_value
 def loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     """
     param:
@@ -19,6 +20,8 @@ def loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
         a scalar value representing the loss
     """
     q = dqn.forward(s, a)
+    q_empirical = compute_q_value((s, a, r, s_prime)) #sharvani's code takes in sarsa so should we change input to loss?
+    diff = abs(q - q_empirical) #returning this?
 
     if dqn_prime: # using ddqn
         target = 0
@@ -78,7 +81,6 @@ def train(
 
     for i in iterations:
         # collect trajectories
-        
 
         trajectories = collect_trajectories()
         dataset.add(trajectories)
@@ -94,6 +96,8 @@ def train(
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
+        #calculate mean of the q value differences to evaluate?
 
         
 

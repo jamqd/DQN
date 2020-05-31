@@ -31,3 +31,23 @@ def sar_to_sarsa(sar_traj):
 		if i != len(sar_traj) - 1:
 			sarsa_traj.append(sar_traj[i])
 	return sarsa_traj
+
+def main():
+	#example()
+	#loop()
+	#space()
+	#sample_space()
+	#get_envs()
+	#collect_traj()
+	# sar = [["s1", "a1", "r1"], ["s2", "a2", "r2"], ["s3", "a3", "r3"], ["s4", "a4", "r4"]]
+	# sarsa = sar_to_sarsa(sar)
+	# print(sarsa)
+	env = gym.make('LunarLander-v2')
+	sarsa = collect_traj(env, 20, 100, True)
+	print(sarsa)
+
+
+
+
+if __name__ == '__main__':
+	main()

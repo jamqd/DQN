@@ -107,11 +107,11 @@ def train(
         all_traj = dataset.get_trajectories()
         q_difference = q_diff(dqn, all_traj)
 
-        avgs = []
+        sums = []
         for traj in all_traj:
-            avg_reward = sum([sarsa[2] for sarsa in traj])/len(traj)
-            avgs.append(avg_reward)
-        undiscounted_avg_reward = sum(avgs)/len(avgs)
+            sum_reward = sum([sarsa[2] for sarsa in traj])/len(traj)
+            sums.append(sum_reward)
+        undiscounted_avg_reward = sum(sums)/len(sums)
 
         writer.add_scalar("QDiff", q_difference)
         # writer.add_scalar("AvgReward", undiscounted_avg_reward) #calculate this reward

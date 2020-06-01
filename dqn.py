@@ -18,6 +18,11 @@ class DQN(nn.Module):
         self.fc1 = nn.Linear(state_dim + action_dim, 128)
         self.fc2 = nn.Linear(128, 256)
         self.fc3 = nn.Linear(256, 1)
+        
+        if torch.cuda.is_available():
+            self.fc1.cuda()
+            self.fc2.cuda()
+            self.fc3.cuda()
 
     def forward(self, state, action, verbose=False):
         """

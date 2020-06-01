@@ -74,9 +74,9 @@ def train(
 
     # initializes deep Q network
     dqn = DQN(obs_space_dim, action_space_dim)
-    #if torch.cuda.is_available():
-    #    print("DQN on GPU")
-    #    dqn.to("cuda:0")
+    if torch.cuda.is_available():
+        print("DQN on GPU")
+        dqn.to("cuda:0")
 
     # collect trajectories with random policy
     init_trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn)
@@ -90,9 +90,9 @@ def train(
     if use_ddqn:
         print("Using DDQN")
         dqn_prime = DQN(obs_space_dim, action_space_dim)
-        #if torch.cuda.is_available():
-        #    print("DQN Prime on GPU")
-        #    dqn_prime.to("cuda:0")
+        if torch.cuda.is_available():
+            print("DQN Prime on GPU")
+            dqn_prime.to("cuda:0")
 
     optimizer = optim.Adam(dqn.parameters())
 
@@ -110,13 +110,13 @@ def train(
             s_prime = sarsa[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
             a_prime = sarsa[:, obs_space_dim + 1 + 1 + obs_space_dim:]
             
-            # print(a.shape)
-            # print(r.shape)
-            #if torch.cuda.is_available():
-            #    s.cuda()
-            #    a.cuda()
-            #    r.cuda()
-            #   s_prime.cuda()
+            print(a.shape)
+            print(r.shape)
+            if torch.cuda.is_available():
+                s.cuda()
+                a.cuda()
+                r.cuda()
+                s_prime.cuda()
 
             loss = compute_loss(s, a.squeeze(), r.squeeze(), s_prime, dqn, discount_factor, dqn_prime)
             optimizer.zero_grad()

@@ -8,6 +8,7 @@ import numpy as np
 from trajectory_dataset import TrajectoryDataset
 from qvalues import compute_q_value
 from torch.utils.tensorboard import SummaryWriter
+from run import collect_trajectories
 def loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     """
     param:
@@ -59,9 +60,9 @@ def train(
     obs_space_dim = np.prod(env.observation_space.shape)
 
 
-    dqn = DQN(action_space_d)
+    dqn = DQN(action_space_dim)
 
-    init_trajectories = collect_trajectories() # fill later
+    init_trajectories = collect_trajectories(env, episodes_per_iteration, ddqn=use_ddqn) # fill later
     dataset = TrajectoryDataset(init_trajectories)
     dataloader = torch.utils.data.DataLoader(dataset,
         batch_size=batch_size,
@@ -81,7 +82,7 @@ def train(
             dqn_prime.load_state_dict(dqn.state_dict())
 
         # collect trajectories
-        trajectories = collect_trajectories()
+        trajectories = collect_trajectories(env, episodes_per_iteration, ddqn=use_ddqn)
         dataset.add(trajectories)
         dataloader = torch.utils.data.DataLoader(dataset,
             batch_size=batch_size,
@@ -95,10 +96,12 @@ def train(
             loss.backward()
             optimizer.step()
 
-        #calculate mean of the q value differences to evaluate?
+        all_traj = TrajectoryDataset(get_trajectories)
+        q_difference = q_diff(dqn, all_traj)
+        undiscounted_avg_reward = sum([(sum(sarsa[2] for sarsa in traj)/len(traj)) for traj in all_traj])/len(all_trajectories)
 
         writer.add_scalar("QDiff", q_difference)
-        writer.add_scalar("AvgReward", undiscounted_avg_reward)
+        writer.add_scalar("AvgReward", undiscounted_avg_reward) #calculate this reward
         
     env.close()
 

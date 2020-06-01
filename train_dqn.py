@@ -6,6 +6,7 @@ import gym
 import numpy as np
 from trajectory_dataset import TrajectoryDataset
 from qvalues import compute_q_value
+from torch.utils.tensorboard import SummaryWriter
 def loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     """
     param:
@@ -74,9 +75,8 @@ def train(
 
     optimizer = optim.Adam(dqn.parameters())
 
-
+    writer = SummaryWriter()
     
-
     for i in iterations:
         # collect trajectories
 
@@ -86,8 +86,7 @@ def train(
             batch_size=batch_size,
             shuffle=True,
             num_workers=n_threads))
-
-
+        
         # fitted Q-iteration
         for (s, a, r, s_prime, a_prime) in dataloader:
             loss = loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
@@ -96,6 +95,9 @@ def train(
             optimizer.step()
 
         #calculate mean of the q value differences to evaluate?
+
+        writer.add_scalar("QDiff", q_difference)
+        writer.add_scalar("AvgReward", undiscounted_avg_reward)
 
 def q_diff(dqn, trajectories):
     s = [sarsa[0] for sarsa in traj for traj in trajectories]

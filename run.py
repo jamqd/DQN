@@ -1,4 +1,5 @@
 import gym
+import torch
 
 #given environment, number of episodes and timesteps, run environment and return sarsa or sar trajectories
 def collect_traj(env, episodes, timesteps=None, sarsa=True, dqn=None, render=False):
@@ -11,7 +12,7 @@ def collect_traj(env, episodes, timesteps=None, sarsa=True, dqn=None, render=Fal
 			if render:
 				env.render()
 			if dqn:
-				action = dqn.forward_best_actions([observation])
+				action = torch.squeeze( dqn.forward_best_actions([observation])[0]).item()
 			else: 
 				action = env.action_space.sample()  # random sample of action space
 			observation, reward, done, info = env.step(action)

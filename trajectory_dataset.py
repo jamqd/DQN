@@ -40,7 +40,7 @@ class TrajectoryDataset(Dataset):
         """
         return self.transitions[idx]
 
-    def add_data(self, trajectories):
+    def add(self, trajectories):
         """
             param:
                 trajectories: list of trajectories. assumes each trajectory is a list of sarsa tuples 

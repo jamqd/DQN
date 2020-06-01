@@ -21,14 +21,15 @@ def main():
     """
 
     parser = argparse.ArgumentParser(description="train dqn and/or ddqn for comparison of approaches")
-    parser.add_argument('--learning_rate', dest='learning_rate', required = True, help="coefficient (alpha) for controlling learning rate", type=float)
-    parser.add_argument('--discount_factor', dest='discount_factor', required = True, help="cofficient (gamma) to weight importance of newer samples", type=float)
-    parser.add_argument('--env_name', dest = 'env_name', required = True, help="name of the gym environment", type=str)
-    parser.add_argument('--iterations', dest='iterations', required=True, help="number of training iterations", type=int)
-    parser.add_argument('--episodes', dest='episodes', required=True, help = "number of episodes per iterations", type=int)
-    parser.add_argument('--use_ddqn', dest='use_ddqn', required=True, help = "use ddqn instead of dqn", type=bool)
-    parser.add_argument('--batch_size', dest='batch_size', required=True, help = "batch size for gradient update", type=int)
-    parser.add_argument('--n_threads', dest='n_threads', required=True, help = "number of threads to use", type = int)
+    parser.add_argument('--learning_rate', dest='learning_rate', default=0.001, help="coefficient (alpha) for controlling learning rate", type=float)
+    parser.add_argument('--discount_factor', dest='discount_factor', default=0.99, help="cofficient (gamma) to weight importance of newer samples", type=float)
+    parser.add_argument('--env_name', dest = 'env_name', default="LunarLander-v2", help="name of the gym environment", type=str)
+    parser.add_argument('--iterations', dest='iterations', default=1000, help="number of training iterations", type=int)
+    parser.add_argument('--episodes', dest='episodes', default=100, help = "number of episodes per iterations", type=int)
+    parser.add_argument('--use_ddqn', dest='use_ddqn', default=False, help = "use ddqn instead of dqn", type=bool)
+    parser.add_argument('--batch_size', dest='batch_size', default=128, help = "batch size for gradient update", type=int)
+    parser.add_argument('--n_threads', dest='n_threads', default=1, help = "number of threads to use", type=int)
+    parser.add_argument('--max_replay', dest='max_replay', default=1000000, help = "how many transitions to store", type=int)
     args = parser.parse_args()
 
     train(
@@ -39,10 +40,9 @@ def main():
         episodes_per_iteration=args.episodes,
         use_ddqn=args.use_ddqn,
         batch_size=args.batch_size,
-        n_threads=args.n_threads
+        n_threads=args.n_threads,
+        max_replay_history=args.max_replay
     )
 
 if __name__ == "__main__":
     main()
-
-

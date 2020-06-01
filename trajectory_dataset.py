@@ -20,12 +20,27 @@ class TrajectoryDataset(Dataset):
 
         for trajectory in trajectories:
             for transition in trajectory:
+                # print(len(transition[0]))
+                # print(len(transition[1]))
+                # print(len(transition[2]))
+                # print(len(transition[3]))
+                # print(len(transition[4]))
                 s = transition[0]
                 a = transition[1]
                 r = transition[2]
                 s_prime = transition[3]
                 a_prime = transition[4]
-                self.transitions.append(np.concatenate((s,[a],[r],s_prime,[a_prime])))
+                # print(s)
+                # print(a)
+                # print(r)
+                # print(s_prime)
+                # print(a_prime)
+
+
+
+                test = np.concatenate((s,[a],[r],s_prime,[a_prime]))
+                # print(test.shape)
+                self.transitions.append(test)
 
         self.transitions = np.array(self.transitions)
 

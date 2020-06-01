@@ -17,7 +17,7 @@ class TrajectoryDataset(Dataset):
         self.transitions = np.array([transition for trajectory in trajectories for transition in trajectory])
         self.max_replay_history = max_replay_history
 
-        self.original_trajectories = self.restructure_original(trajectories)
+        self.original_trajectories = self.restructure_original(np.array(trajectories))
 
         if len(self.transitions) > self.max_replay_history:
             self.transitions = self.transitions[len(self.transitions) - self.max_replay_history:]
@@ -54,7 +54,7 @@ class TrajectoryDataset(Dataset):
             self.transitions = np.concatenate((self.transitions[old_start_index:],new_transitions))
         else:
             self.transitions = np.concatenate((self.transitions, new_transitions))
-        self.original_trajectories = self.restructure_original(self.original_trajectories + trajectories)
+        self.original_trajectories = self.restructure_original(np.concatenate(self.original_trajectories, np.array(trajectories)))
 
     def restructure_original(self, trajectories):
         """
@@ -72,9 +72,9 @@ class TrajectoryDataset(Dataset):
                 idx_traj += 1
                 next_trajectory = trajectories[idx_traj]
             if idx_traj <= len(trajectories) - 1:
-                return [trajectories[idx_traj][idx_start:]]+ trajectories[idx_traj + 1:]
+                return np.concatenate(trajectories[idx_traj][idx_start:], trajectories[idx_traj + 1:])
             elif idx_traj > len(trajectories) - 1:
-                return [] # I don't think this should ever occur
+                return np.array([]) # I don't think this should ever occur
         else:
             return trajectories
 

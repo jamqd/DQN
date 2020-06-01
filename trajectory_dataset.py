@@ -14,7 +14,22 @@ class TrajectoryDataset(Dataset):
                 trajectories: list of trajectories. assumes each trajectory is a list of sarsa tuples 
                 max_replay_history: int indicating the max number of transitions (sarsa tuples) to store
         """
-        self.transitions = np.array([transition for trajectory in trajectories for transition in trajectory])
+        # self.transitions = np.array([transition for trajectory in trajectories for transition in trajectory], dtype=float)
+        
+        self.transitions = []
+
+        for trajectory in trajectories:
+            for transition in trajectory:
+                s = transition[0]
+                a = transition[1]
+                r = transition[2]
+                s_prime = transition[3]
+                a_prime = transition[4]
+                self.transitions.append(np.concatenate((s,[a],[r],s_prime,[a_prime])))
+
+        self.transitions = np.array(self.transitions)
+
+
         self.max_replay_history = max_replay_history
 
         self.original_trajectories = self.restructure_original(np.array(trajectories))

@@ -12,7 +12,7 @@ import os
 import datetime
 import qvalues
 
-def loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
+def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     """
     param:
         s : (N, |S|)
@@ -57,15 +57,14 @@ def train(
 
     if not os.path.isdir("./models/"):
         os.mkdir("./models/")
-        
+
     env = gym.make(env_name)
-    if not isinstance(env.action_space, gym.space.discrete.Discrete):
+    if not isinstance(env.action_space, gym.spaces.discrete.Discrete):
         print("Action space for env {} is not discrete".formt(env_name))
         raise ValueError
 
     action_space_dim = env.action_space.n
     obs_space_dim = np.prod(env.observation_space.shape)
-
 
     # initializes deep Q network
     dqn = DQN(obs_space_dim, action_space_dim)
@@ -85,14 +84,19 @@ def train(
     optimizer = optim.Adam(dqn.parameters())
 
     writer = SummaryWriter()
-    
-    for i in iterations:
+    for i in range(iterations):
         if use_ddqn and i % copy_params_every == 0:
             dqn_prime.load_state_dict(dqn.state_dict())
         
         # fitted Q-iteration
-        for (s, a, r, s_prime, a_prime) in dataloader:
-            loss = loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
+        for sarsa in dataloader:
+            s = sarsa[:obs_space_dim]
+            a = sarsa[obs_space_dim:obs_space_dim + action_space_dim]
+            r = sarsa[obs_space_dim + action_space_dim : obs_space_dim + action_space_dim + 1]
+            s_prime = sarsa[obs_space_dim + action_space_dim + 1: obs_space_dim + action_space_dim + 1 + obs_space_dim]
+            a_prime = sarsa[obs_space_dim + action_space_dim + 1 + obs_space_dim:]
+
+            loss = compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

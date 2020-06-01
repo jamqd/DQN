@@ -1,5 +1,6 @@
 import gym
 import torch
+import numpy as np
 
 #given environment, number of episodes and timesteps, run environment and return sarsa or sar trajectories
 def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, render=False):
@@ -16,6 +17,10 @@ def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, re
 			else: 
 				action = env.action_space.sample()  # random sample of action space
 			observation, reward, done, info = env.step(action)
+			# print()
+			# print(type(action))
+			# print(type(observation))
+			# print(type(reward))
 			sar_traj.append([observation, action, reward])
 			if done:
 				print("Episode finished after {} timesteps".format(t + 1))
@@ -25,7 +30,7 @@ def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, re
 			trajectories.append(sar_to_sarsa(sar_traj))
 		else:
 			trajectories.append(sar_traj)
-	return trajectories
+	return np.asarray(trajectories)
 
 #convert sar to sarsa trajectories
 def sar_to_sarsa(sar_traj):

@@ -76,7 +76,7 @@ def train(
     dqn = DQN(obs_space_dim, action_space_dim)
     if torch.cuda.is_available():
         print("DQN on GPU")
-        dqn = dqn.to("cuda:0")
+        dqn = dqn.cuda()
 
     # collect trajectories with random policy
     init_trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn)

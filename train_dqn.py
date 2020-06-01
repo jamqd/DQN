@@ -9,6 +9,9 @@ from trajectory_dataset import TrajectoryDataset
 from qvalues import compute_q_value
 from torch.utils.tensorboard import SummaryWriter
 from run import collect_trajectories
+import os
+import datetime
+
 def loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     """
     param:
@@ -39,7 +42,8 @@ def train(
     use_ddqn=False,
     batch_size=128,
     n_threads=1,
-    copy_params_every=100
+    copy_params_every=100,
+    save_model_every=100
 ):
     """
     param:
@@ -50,7 +54,8 @@ def train(
 
     """
 
-
+    if not os.path.isdir("./models/"):
+        os.mkdir("./models/")
     env = gym.make(env_name)
     if not isinstance(env.action_space, gym.space.discrete.Discrete):
         print("Action space for env {} is not discrete".formt(env_name))
@@ -103,6 +108,10 @@ def train(
         writer.add_scalar("QDiff", q_difference)
         writer.add_scalar("AvgReward", undiscounted_avg_reward) #calculate this reward
         
+        if save_model_every % i == 0:
+            torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-","_").replace(" ","_").replace(":",".") + ".pt")
+
+
     env.close()
 
 def q_diff(dqn, trajectories):

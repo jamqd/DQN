@@ -2,10 +2,11 @@ import gym
 
 #given environment, number of episodes and timesteps, run environment and return sarsa or sar trajectories
 def collect_traj(env, episodes, timesteps=None, sarsa=True):
-	sar_traj = []
+	trajectories = []
 	for i_episode in range(episodes):
 		observation = env.reset()
 		t = 0
+		sar_traj = []
 		while timesteps == None or t < timesteps:
 			env.render()
 			action = env.action_space.sample()  # random sample of action space
@@ -15,11 +16,12 @@ def collect_traj(env, episodes, timesteps=None, sarsa=True):
 				print("Episode finished after {} timesteps".format(t + 1))
 				break
 			t = t + 1
+			if sarsa:
+				trajectories.append(sar_to_sarsa(sar_traj))
+			else:
+				trajectories.append(sar_traj)
 		env.close()
-	if sarsa:
-		return sar_to_sarsa(sar_traj)
-	else:
-		return sar_traj
+	return trajectories
 
 #convert sar to sarsa trajectories
 def sar_to_sarsa(sar_traj):

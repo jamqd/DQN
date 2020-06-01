@@ -2,6 +2,7 @@ import torch
 from torch import optim
 import torch.nn.functional as F
 from dqn import DQN
+import run
 import gym
 import numpy as np
 from trajectory_dataset import TrajectoryDataset
@@ -98,6 +99,8 @@ def train(
 
         writer.add_scalar("QDiff", q_difference)
         writer.add_scalar("AvgReward", undiscounted_avg_reward)
+        
+    env.close()
 
 def q_diff(dqn, trajectories):
     s = [sarsa[0] for sarsa in traj for traj in trajectories]

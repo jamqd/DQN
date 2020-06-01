@@ -1,26 +1,29 @@
 import gym
 
 #given environment, number of episodes and timesteps, run environment and return sarsa or sar trajectories
-def collect_traj(env, episodes, timesteps=None, sarsa=True):
+def collect_traj(env, episodes, timesteps=None, sarsa=True, dqn=None, render=False):
 	trajectories = []
 	for i_episode in range(episodes):
 		observation = env.reset()
 		t = 0
 		sar_traj = []
 		while timesteps == None or t < timesteps:
-			env.render()
-			action = env.action_space.sample()  # random sample of action space
+			if render:
+				env.render()
+			if dqn:
+				action = dqn.forward_best_actions([observation])
+			else: 
+				action = env.action_space.sample()  # random sample of action space
 			observation, reward, done, info = env.step(action)
 			sar_traj.append([observation, action, reward])
 			if done:
 				print("Episode finished after {} timesteps".format(t + 1))
 				break
 			t = t + 1
-			if sarsa:
-				trajectories.append(sar_to_sarsa(sar_traj))
-			else:
-				trajectories.append(sar_traj)
-		env.close()
+		if sarsa:
+			trajectories.append(sar_to_sarsa(sar_traj))
+		else:
+			trajectories.append(sar_traj)
 	return trajectories
 
 #convert sar to sarsa trajectories
@@ -46,7 +49,7 @@ def main():
 	# print(sarsa)
 	env = gym.make('LunarLander-v2')
 	sarsa = collect_traj(env, 20, 100, True)
-	print(sarsa)
+	return sarsa
 
 
 

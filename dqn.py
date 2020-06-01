@@ -27,7 +27,9 @@ class DQN(nn.Module):
             return:
                 q: Q-value, Q(state, value)
         """
-        N = state.size()[0]
+        # state = torch.Tensor(state)
+        # action = torch.Tensor(action)
+        N = len(state)
         action_one_hot = torch.zeros(N, self.action_dim)
         action_one_hot[torch.arange(N).long(), action.long()] = 1
         state_action = torch.cat((state, action_one_hot), dim=1)
@@ -44,7 +46,8 @@ class DQN(nn.Module):
                 best_action: indexes of best action, shape: (N,)
                 best_q: Q(state, best_action), shpae: (N,)
         """
-        N = state.size()[0]
+        state = torch.Tensor(state)
+        N = len(state)
         state_r = state.repeat_interleave(self.action_dim, dim=0)
         all_actions_r = self.all_actions.repeat(N)
         q = self.forward(state_r, all_actions_r)

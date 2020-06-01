@@ -19,7 +19,7 @@ class DQN(nn.Module):
         self.fc2 = nn.Linear(128, 256)
         self.fc3 = nn.Linear(256, 1)
 
-    def forward(self, state, action):
+    def forward(self, state, action, verbose=False):
         """
             param:
                 state: batch of states, shape: (N, |S|)
@@ -27,14 +27,22 @@ class DQN(nn.Module):
             return:
                 q: Q-value, Q(state, value)
         """
+        if verbose:
+            print("verbose")
+            print(state)
+            print(action)
         if not torch.is_tensor(state):
             state = torch.Tensor(state)
-        if not torch.is_tensor(action):
-            action = torch.Tensor(action)
+        
+        action = torch.LongTensor(action.long())
+        # state = state.double()
+        # action = action.double()
+
         N = len(state)
-        action_one_hot = torch.zeros(N, self.action_dim)
-        action_one_hot[torch.arange(N).long(), action.long()] = 1
-        state_action = torch.cat((state, action_one_hot), dim=1)
+        action_one_hot = F.one_hot(action, self.action_dim)
+        # print(state.size())
+        # print(action_one_hot.size())
+        state_action = torch.cat((state.float(), action_one_hot.float()), dim=1)
         x = F.relu(self.fc1(state_action))
         x  = F.relu(self.fc2(x))
         q = self.fc3(x)

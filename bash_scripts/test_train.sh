@@ -1,0 +1,9 @@
+python ./main.py \
+    --learning_rate 0.001 \
+    --discount_factor 0.99 \
+    --env_name LunarLander-v2 \
+    --iterations 2 \
+    --episodes 2 \
+    --use_ddqn false \
+    --batch_size 1 \
+    --n_threads 1 \

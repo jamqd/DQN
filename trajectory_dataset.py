@@ -14,7 +14,37 @@ class TrajectoryDataset(Dataset):
                 trajectories: list of trajectories. assumes each trajectory is a list of sarsa tuples 
                 max_replay_history: int indicating the max number of transitions (sarsa tuples) to store
         """
-        self.transitions = np.array([transition for trajectory in trajectories for transition in trajectory])
+        # self.transitions = np.array([transition for trajectory in trajectories for transition in trajectory], dtype=float)
+        
+        self.transitions = []
+
+        for trajectory in trajectories:
+            for transition in trajectory:
+                # print(len(transition[0]))
+                # print(len(transition[1]))
+                # print(len(transition[2]))
+                # print(len(transition[3]))
+                # print(len(transition[4]))
+                s = transition[0]
+                a = transition[1]
+                r = transition[2]
+                s_prime = transition[3]
+                a_prime = transition[4]
+                # print(s)
+                # print(a)
+                # print(r)
+                # print(s_prime)
+                # print(a_prime)
+
+
+
+                test = np.concatenate((s,[a],[r],s_prime,[a_prime]))
+                # print(test.shape)
+                self.transitions.append(test)
+
+        self.transitions = np.array(self.transitions)
+
+
         self.max_replay_history = max_replay_history
 
         self.original_trajectories = self.restructure_original(np.array(trajectories))
@@ -46,7 +76,17 @@ class TrajectoryDataset(Dataset):
                 trajectories: list of trajectories. assumes each trajectory is a list of sarsa tuples 
             return:
         """
-        new_transitions = np.array([transition for trajectory in trajectories for transition in trajectory])
+        new_transitions = []
+        for trajectory in trajectories:
+            for transition in trajectory:
+                s = transition[0]
+                a = transition[1]
+                r = transition[2]
+                s_prime = transition[3]
+                a_prime = transition[4]
+                new_transitions.append(np.concatenate((s,[a],[r],s_prime,[a_prime])))
+
+        new_transitions = np.array(new_transitions)
         if len(new_transitions) >= self.max_replay_history:
             self.transitions = new_transitions[len(new_transitions) - self.max_replay_history:]
         elif len(new_transitions) + len(self.transitions) >= self.max_replay_history:

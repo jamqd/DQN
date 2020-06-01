@@ -20,9 +20,9 @@ class DQN(nn.Module):
         self.fc3 = nn.Linear(256, 1)
         
         if torch.cuda.is_available():
-            self.fc1.cuda()
-            self.fc2.cuda()
-            self.fc3.cuda()
+            self.fc1 = self.fc1.cuda()
+            self.fc2 = self.fc2.cuda()
+            self.fc3 = self.fc3.cuda()
 
     def forward(self, state, action, verbose=False):
         """
@@ -60,9 +60,6 @@ class DQN(nn.Module):
         N = len(state)
         state_r = state.repeat_interleave(self.action_dim, dim=0)
         all_actions_r = self.all_actions.repeat(N)
-        if torch.cuda.is_available():
-            state_r.cuda()
-            all_actions_r.cuda()
         q = self.forward(state_r, all_actions_r)
         q = q.reshape((N, self.action_dim))
         best_action = torch.argmax(q, 1)

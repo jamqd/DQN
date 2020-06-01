@@ -44,7 +44,6 @@ class TrajectoryDataset(Dataset):
 
         self.transitions = np.array(self.transitions)
 
-
         self.max_replay_history = max_replay_history
 
         self.original_trajectories = self.restructure_original(np.array(trajectories))

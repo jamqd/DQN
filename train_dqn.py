@@ -27,10 +27,15 @@ def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     q = torch.squeeze(dqn.forward(s, a))
     if dqn_prime: # using ddqn and target network
         bootstrap = dqn_prime.forward(s_prime, dqn.forward_best_actions(s_prime)[0])
+        # if torch.cuda.is_available():
+        #     target = r.cuda() + torch.squeeze(discount_factor * bootstrap)
+        # else:
         target = r + torch.squeeze(discount_factor * bootstrap)
     else:
         bootstrap = dqn.forward_best_actions(s_prime)[1]
-        target = r + torch.squeeze(discount_factor * bootstrap)
+        # if torch.cuda.is_available():
+        #     target = r.cuda() + torch.squeeze(discount_factor * bootstrap[0])
+        target = r + torch.squeeze(discount_factor * bootstrap[0])
 
     target.detach() # do not propogate graidents through target
     return F.mse_loss(q, target)
@@ -110,13 +115,11 @@ def train(
             s_prime = sarsa[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
             a_prime = sarsa[:, obs_space_dim + 1 + 1 + obs_space_dim:]
             
-            print(a.shape)
-            print(r.shape)
-            # if torch.cuda.is_available():
-            #     s = s.cuda()
-            #     a = a.cuda()
-            #     r = r.cuda()
-            #     s_prime = s_prime.cuda()
+            if torch.cuda.is_available():
+                s = s.cuda()
+                a = a.cuda()
+                r = r.cuda()
+                s_prime = s_prime.cuda()
 
             loss = compute_loss(s, a.squeeze(), r.squeeze(), s_prime, dqn, discount_factor, dqn_prime)
             optimizer.zero_grad()
@@ -151,7 +154,10 @@ def train(
 def q_diff(dqn, trajectories):
     s = [sarsa[0] for traj in trajectories for sarsa in traj]
     a = [sarsa[1] for traj in trajectories for sarsa in traj]
-    q = dqn.forward(s, a).squeeze().detach().numpy()
+    if torch.cuda.is_available():
+        q = dqn.forward(s, a).squeeze().detach().cpu().numpy()
+    else:
+        q = dqn.forward(s, a).squeeze().detach().numpy()
     q_empirical = qvalues.cumulative_discounted_rewards(trajectories)
     q_empirical = np.concatenate([q_t for q_t in q_empirical])
     diff = q - q_empirical

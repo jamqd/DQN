@@ -33,6 +33,10 @@ class DQN(nn.Module):
             action = torch.Tensor(action)
     
         action = torch.LongTensor(action.long())
+        if torch.cuda.is_available():
+            state.to("cuda:0")
+            action.to("cuda:0")
+            
         N = len(state)
         # print(N)
         # print(action.size())

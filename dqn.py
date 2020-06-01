@@ -56,7 +56,7 @@ class DQN(nn.Module):
                 best_q: Q(state, best_action), shpae: (N,)
         """
         if not torch.is_tensor(state):
-            state = torch.Tensor(state)'
+            state = torch.Tensor(state)
         N = len(state)
         state_r = state.repeat_interleave(self.action_dim, dim=0)
         all_actions_r = self.all_actions.repeat(N)

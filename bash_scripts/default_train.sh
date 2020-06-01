@@ -6,4 +6,4 @@ python ./main.py \
     --episodes 64 \
     --use_ddqn true \
     --batch_size 32 \
-    --n_threads 1 \
+    --n_threads 4 \

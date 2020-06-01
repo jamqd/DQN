@@ -33,13 +33,8 @@ class DQN(nn.Module):
             action = torch.Tensor(action)
     
         action = torch.LongTensor(action.long())
-        if torch.cuda.is_available():
-            state.to("cuda:0")
-            action.to("cuda:0")
-            
+
         N = len(state)
-        # print(N)
-        # print(action.size())
         action_one_hot = F.one_hot(action, self.action_dim)
         state_action = torch.cat((state.float(), action_one_hot.float()), dim=1)
         x = F.relu(self.fc1(state_action))

@@ -19,10 +19,10 @@ class DQN(nn.Module):
         self.fc2 = nn.Linear(128, 256)
         self.fc3 = nn.Linear(256, 1)
         
-        if torch.cuda.is_available():
-            self.fc1 = self.fc1.cuda()
-            self.fc2 = self.fc2.cuda()
-            self.fc3 = self.fc3.cuda()
+        # if torch.cuda.is_available():
+        #     self.fc1 = self.fc1.cuda()
+        #     self.fc2 = self.fc2.cuda()
+        #     self.fc3 = self.fc3.cuda()
 
     def forward(self, state, action, verbose=False):
         """

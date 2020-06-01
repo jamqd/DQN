@@ -92,7 +92,7 @@ def train(
         dqn_prime = DQN(obs_space_dim, action_space_dim)
         if torch.cuda.is_available():
             print("DQN Prime on GPU")
-            dqn_prime = dqn_prime.to("cuda:0")
+            dqn_prime = dqn_prime.cuda()
 
     optimizer = optim.Adam(dqn.parameters())
 
@@ -112,11 +112,11 @@ def train(
             
             print(a.shape)
             print(r.shape)
-            if torch.cuda.is_available():
-                s = s.cuda()
-                a = a.cuda()
-                r = r.cuda()
-                s_prime = s_prime.cuda()
+            # if torch.cuda.is_available():
+            #     s = s.cuda()
+            #     a = a.cuda()
+            #     r = r.cuda()
+            #     s_prime = s_prime.cuda()
 
             loss = compute_loss(s, a.squeeze(), r.squeeze(), s_prime, dqn, discount_factor, dqn_prime)
             optimizer.zero_grad()

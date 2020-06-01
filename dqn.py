@@ -60,7 +60,7 @@ class DQN(nn.Module):
         N = len(state)
         state_r = state.repeat_interleave(self.action_dim, dim=0)
         all_actions_r = self.all_actions.repeat(N)
-        if torch.cuda.is_avaiable():
+        if torch.cuda.is_available():
             state_r.cuda()
             all_actions_r.cuda()
         q = self.forward(state_r, all_actions_r)

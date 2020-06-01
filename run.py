@@ -3,7 +3,7 @@ import torch
 import numpy as np
 
 #given environment, number of episodes and timesteps, run environment and return sarsa or sar trajectories
-def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, render=False):
+def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, render=False, verbose=False):
 	trajectories = []
 	for i_episode in range(episodes):
 		observation = env.reset()
@@ -19,7 +19,8 @@ def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, re
 			observation, reward, done, info = env.step(action)
 			sar_traj.append([observation, action, reward])
 			if done:
-				print("Episode finished after {} timesteps".format(t + 1))
+				if verbose:
+					print("Episode finished after {} timesteps".format(t + 1))
 				break
 			t = t + 1
 		if sarsa:

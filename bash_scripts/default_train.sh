@@ -3,7 +3,7 @@ python ./main.py \
     --discount_factor 0.99 \
     --env_name LunarLander-v2 \
     --iterations 1000 \
-    --episodes 100 \
-    --use_ddqn false \
-    --batch_size 128 \
+    --episodes 64 \
+    --use_ddqn true \
+    --batch_size 32 \
     --n_threads 1 \

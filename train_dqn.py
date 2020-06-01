@@ -63,9 +63,12 @@ def train(
         print("Action space for env {} is not discrete".formt(env_name))
         raise ValueError
 
+    print("Using env: {}".format(env_name))
+
     action_space_dim = env.action_space.n
     obs_space_dim = np.prod(env.observation_space.shape)
-    print(action_space_dim, obs_space_dim)
+    print("Action space dimension: {}".format(action_space_dim))
+    print("Observation space dimension {}".format(obs_space_dim))
 
     # initializes deep Q network
     dqn = DQN(obs_space_dim, action_space_dim)
@@ -114,7 +117,7 @@ def train(
         undiscounted_avg_reward = sum(sums)/len(sums)
 
         writer.add_scalar("QDiff", q_difference)
-        # writer.add_scalar("AvgReward", undiscounted_avg_reward) #calculate this reward
+        writer.add_scalar("AvgReward", undiscounted_avg_reward) #calculate this reward
         
         if i% save_model_every == 0:
             torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-","_").replace(" ","_").replace(":",".") + ".pt")

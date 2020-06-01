@@ -76,7 +76,17 @@ class TrajectoryDataset(Dataset):
                 trajectories: list of trajectories. assumes each trajectory is a list of sarsa tuples 
             return:
         """
-        new_transitions = np.array([transition for trajectory in trajectories for transition in trajectory])
+        new_transitions = []
+        for trajectory in trajectories:
+            for transition in trajectory:
+                s = transition[0]
+                a = transition[1]
+                r = transition[2]
+                s_prime = transition[3]
+                a_prime = transition[4]
+                new_transitions.append(np.concatenate((s,[a],[r],s_prime,[a_prime])))
+
+        new_transitions = np.array(new_transitions)
         if len(new_transitions) >= self.max_replay_history:
             self.transitions = new_transitions[len(new_transitions) - self.max_replay_history:]
         elif len(new_transitions) + len(self.transitions) >= self.max_replay_history:

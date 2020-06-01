@@ -112,6 +112,12 @@ def train(
             
             # print(a.shape)
             # print(r.shape)
+            if torch.cuda.is_available():
+                s.cuda()
+                a.cuda()
+                r.cuda()
+                s_prime.cuda()
+
             loss = compute_loss(s, a.squeeze(), r.squeeze(), s_prime, dqn, discount_factor, dqn_prime)
             optimizer.zero_grad()
             loss.backward()

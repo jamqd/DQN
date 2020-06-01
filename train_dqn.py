@@ -10,21 +10,20 @@ def loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     """
     param:
         s : (N, |S|)
-        a : batch of one hot representations of actions (N, |A|)
+        a : batch of of actions (N,)
         r : batch of rewards (N,)
         s_prime : (N, |S|)
         q_
-
-
+∂
     return:
         a scalar value representing the loss
     """
     q = dqn.forward(s, a)
 
-    if dqn_prime: # using ddqn
-        target = 0
+    if dqn_prime: # using ddqn and target network
+        target = r + discount_factor * dqn_prime.forward(s_prime, dqn.forward_best_actions(s_prime)[0])
     else:
-        target = r + discount_factor * dqn
+        target = r + discount_factor * dqn.forward_best_actions(s_prime)[1]
     target.detach() # do not propogate graidents through target
     return F.mse_loss(q, target)
 
@@ -36,7 +35,8 @@ def train(
     episodes_per_iteration=100,
     use_ddqn=False,
     batch_size=128,
-    n_threads=1
+    n_threads=1,
+    copy_params_every=100
 ):
     """
     param:
@@ -66,8 +66,6 @@ def train(
         shuffle=True,
         num_workers=n_threads))
 
-
-
     dqn_prime=None
     if use_ddqn:
         dqn_prime = DQN(action_space_d)
@@ -78,8 +76,10 @@ def train(
     
 
     for i in iterations:
-        # collect trajectories
+        if use_ddqn and i % copy_params_every == 0:
+            dqn_prime.load_state_dict(dqn.state_dict())
 
+        # collect trajectories
         trajectories = collect_trajectories()
         dataset.add(trajectories)
         dataloader = torch.utils.data.DataLoader(dataset,

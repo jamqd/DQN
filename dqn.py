@@ -4,6 +4,13 @@ import torch.nn.functional as F
 
 class DQN(nn.Module):
     def __init__(self, state_dim, action_dim):
+        """ 
+            param:
+                state_dim: int representing dimension of state vector
+                action_dim: int representing number of possible actions
+            return:
+                a DQN object
+        """
         super(DQN, self).__init__()
         self.state_dim = state_dim
         self.action_dim = action_dim

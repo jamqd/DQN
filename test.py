@@ -1,6 +1,6 @@
 import torch
 from dqn import DQN
-from run import collect_traj
+from run import collect_trajectories
 import gym
 
 # net = DQN(3, 2)
@@ -17,5 +17,5 @@ import gym
 net = DQN(8,4)
 
 env = gym.make('LunarLander-v2')
-collect_traj(env, 10, timesteps=None, sarsa=True, dqn=net, render=True)
+collect_trajectories(env, 10, timesteps=None, sarsa=True, dqn=net, render=False)
 env.close()

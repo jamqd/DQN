@@ -59,7 +59,7 @@ def train(
         os.mkdir("./models/")
         
     env = gym.make(env_name)
-    if not isinstance(env.action_space, gym.space.discrete.Discrete):
+    if not isinstance(env.action_space, gym.spaces.discrete.Discrete):
         print("Action space for env {} is not discrete".formt(env_name))
         raise ValueError
 
@@ -99,7 +99,7 @@ def train(
 
         all_traj = dataset.get_trajectories()
         q_difference = q_diff(dqn, all_traj)
-        undiscounted_avg_reward = sum([(sum(sarsa[2] for sarsa in traj)/len(traj)) for traj in all_traj])/len(all_traj)
+        undiscounted_avg_reward = sum([(sum(sarsa[2] for traj in trajectories )/len(traj)) for traj in all_traj])/len(all_traj)
 
         writer.add_scalar("QDiff", q_difference)
         writer.add_scalar("AvgReward", undiscounted_avg_reward) #calculate this reward
@@ -118,13 +118,9 @@ def train(
     env.close()
 
 def q_diff(dqn, trajectories):
-    s = [sarsa[0] for sarsa in traj for traj in trajectories]
-    a = [sarsa[1] for sarsa in traj for traj in trajectories]
+    s = [sarsa[0] for traj in trajectories for sarsa in traj]
+    a = [sarsa[1] for traj in trajectories for sarsa in traj]
     q = dqn.forward(s, a)
     q_empirical = qvalues.cumulative_discounted_rewards(trajectories)
     diff = q - q_empirical
     return sum(diff) / (len(q))
-
-
-
-        

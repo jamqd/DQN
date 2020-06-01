@@ -23,4 +23,3 @@ def compute_q_value(trajectories):
     expected_q = rewards + gamma * max_next
 
     return expected_q
-

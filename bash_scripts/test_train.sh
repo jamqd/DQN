@@ -4,6 +4,6 @@ python ./main.py \
     --env_name LunarLander-v2 \
     --iterations 2 \
     --episodes 2 \
-    --use_ddqn true \
+    --use_ddqn false \
     --batch_size 1 \
     --n_threads 1 \

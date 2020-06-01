@@ -24,12 +24,14 @@ def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     return:
         a scalar value representing the loss
     """
-    q = dqn.forward(s, a)
-
+    q = torch.squeeze(dqn.forward(s, a))
     if dqn_prime: # using ddqn and target network
-        target = r + discount_factor * dqn_prime.forward(s_prime, dqn.forward_best_actions(s_prime)[0])
+        bootstrap = dqn_prime.forward(s_prime, dqn.forward_best_actions(s_prime)[0])
+        target = r + torch.squeeze(discount_factor * bootstrap)
     else:
-        target = r + discount_factor * dqn.forward_best_actions(s_prime)[1]
+        bootstrap = dqn.forward_best_actions(s_prime)[1]
+        target = r + torch.squeeze(discount_factor * bootstrap)
+
     target.detach() # do not propogate graidents through target
     return F.mse_loss(q, target)
 
@@ -105,8 +107,10 @@ def train(
             r = sarsa[:, obs_space_dim + 1 : obs_space_dim + 1 + 1]
             s_prime = sarsa[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
             a_prime = sarsa[:, obs_space_dim + 1 + 1 + obs_space_dim:]
-    
-            loss = compute_loss(s, a[0], r[0], s_prime, dqn, discount_factor, dqn_prime)
+            
+            # print(a.shape)
+            # print(r.shape)
+            loss = compute_loss(s, a.squeeze(), r.squeeze(), s_prime, dqn, discount_factor, dqn_prime)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

@@ -34,6 +34,8 @@ class DQN(nn.Module):
     
         action = torch.LongTensor(action.long())
         N = len(state)
+        # print(N)
+        # print(action.size())
         action_one_hot = F.one_hot(action, self.action_dim)
         state_action = torch.cat((state.float(), action_one_hot.float()), dim=1)
         x = F.relu(self.fc1(state_action))

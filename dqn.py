@@ -36,14 +36,16 @@ class DQN(nn.Module):
             state = torch.Tensor(state)
         if not torch.is_tensor(action):
             action = torch.Tensor(action)
+
+        if torch.cuda.is_available():
+            state = state.cuda()
+            action = action.cuda()
     
         action = torch.LongTensor(action.long())
 
         N = len(state)
         action_one_hot = F.one_hot(action, self.action_dim)
         state_action = torch.cat((state.float(), action_one_hot.float()), dim=1)
-        if torch.cuda.is_available():
-            state_action = state_action.cuda()
         x = F.relu(self.fc1(state_action))
         x  = F.relu(self.fc2(x))
         q = self.fc3(x)
@@ -59,6 +61,9 @@ class DQN(nn.Module):
         """
         if not torch.is_tensor(state):
             state = torch.Tensor(state)
+        if torch.cuda.is_available():
+            state = state.cuda()
+
         N = len(state)
         state_r = state.repeat_interleave(self.action_dim, dim=0)
         all_actions_r = self.all_actions.repeat(N)

@@ -75,6 +75,7 @@ def train(
     # initializes deep Q network
     dqn = DQN(obs_space_dim, action_space_dim)
     if torch.cuda.is_available():
+        print("DQN on GPU")
         dqn.to("cuda:0")
 
     # collect trajectories with random policy
@@ -90,6 +91,7 @@ def train(
         print("Using DDQN")
         dqn_prime = DQN(obs_space_dim, action_space_dim)
         if torch.cuda.is_available():
+            print("DQN Prime on GPU")
             dqn_prime.to("cuda:0")
 
     optimizer = optim.Adam(dqn.parameters())

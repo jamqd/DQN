@@ -14,8 +14,8 @@ import gym
 # out = net.forward_best_actions(torch.ones(7,3))
 # print(out)
 
-net = DQN(8,4)
+# net = DQN(8,4)
 
-env = gym.make('LunarLander-v2')
-collect_trajectories(env, 10, timesteps=None, sarsa=True, dqn=net, render=False)
-env.close()
+# env = gym.make('LunarLander-v2')
+# collect_trajectories(env, 10, timesteps=None, sarsa=True, dqn=net, render=False)
+# env.close()

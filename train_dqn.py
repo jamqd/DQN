@@ -24,7 +24,7 @@ def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     return:
         a scalar value representing the loss
     """
-    q = dqn.forward(s, a, verbose=True)
+    q = dqn.forward(s, a)
 
     if dqn_prime: # using ddqn and target network
         target = r + discount_factor * dqn_prime.forward(s_prime, dqn.forward_best_actions(s_prime)[0])
@@ -86,6 +86,7 @@ def train(
 
     writer = SummaryWriter()
     for i in range(iterations):
+        print("Iteration {}".format(i))
         if use_ddqn and i % copy_params_every == 0:
             dqn_prime.load_state_dict(dqn.state_dict())
         
@@ -96,19 +97,6 @@ def train(
             r = sarsa[:, obs_space_dim + 1 : obs_space_dim + 1 + 1]
             s_prime = sarsa[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
             a_prime = sarsa[:, obs_space_dim + 1 + 1 + obs_space_dim:]
-
-            # print("here")
-
-            # print(sarsa)
-
-            # print(s.shape)
-            # print(a.shape)
-            # print(r.shape)
-            # print(s_prime.shape)
-            # print(a_prime.shape)
-
-            # print("here2")
-
     
             loss = compute_loss(s, a[0], r[0], s_prime, dqn, discount_factor, dqn_prime)
             optimizer.zero_grad()
@@ -117,12 +105,12 @@ def train(
 
         all_traj = dataset.get_trajectories()
         q_difference = q_diff(dqn, all_traj)
-        undiscounted_avg_reward = sum([(sum(sarsa[2] for traj in trajectories )/len(traj)) for traj in all_traj])/len(all_traj)
+        # undiscounted_avg_reward = sum([(sum(sarsa[2] for traj in trajectories )/len(traj)) for traj in all_traj])/len(all_traj)
 
         writer.add_scalar("QDiff", q_difference)
-        writer.add_scalar("AvgReward", undiscounted_avg_reward) #calculate this reward
+        # writer.add_scalar("AvgReward", undiscounted_avg_reward) #calculate this reward
         
-        if save_model_every % i == 0:
+        if i% save_model_every == 0:
             torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-","_").replace(" ","_").replace(":",".") + ".pt")
         
         # collect trajectories
@@ -138,7 +126,8 @@ def train(
 def q_diff(dqn, trajectories):
     s = [sarsa[0] for traj in trajectories for sarsa in traj]
     a = [sarsa[1] for traj in trajectories for sarsa in traj]
-    q = dqn.forward(s, a)
+    q = dqn.forward(s, a).squeeze().detach().numpy()
     q_empirical = qvalues.cumulative_discounted_rewards(trajectories)
+    q_empirical = np.concatenate([q_t for q_t in q_empirical])
     diff = q - q_empirical
     return sum(diff) / (len(q))

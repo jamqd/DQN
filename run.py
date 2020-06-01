@@ -17,10 +17,6 @@ def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, re
 			else: 
 				action = env.action_space.sample()  # random sample of action space
 			observation, reward, done, info = env.step(action)
-			# print()
-			# print(type(action))
-			# print(type(observation))
-			# print(type(reward))
 			sar_traj.append([observation, action, reward])
 			if done:
 				print("Episode finished after {} timesteps".format(t + 1))

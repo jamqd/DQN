@@ -27,21 +27,14 @@ class DQN(nn.Module):
             return:
                 q: Q-value, Q(state, value)
         """
-        if verbose:
-            print("verbose")
-            print(state)
-            print(action)
         if not torch.is_tensor(state):
             state = torch.Tensor(state)
-        
+        if not torch.is_tensor(action):
+            action = torch.Tensor(action)
+    
         action = torch.LongTensor(action.long())
-        # state = state.double()
-        # action = action.double()
-
         N = len(state)
         action_one_hot = F.one_hot(action, self.action_dim)
-        # print(state.size())
-        # print(action_one_hot.size())
         state_action = torch.cat((state.float(), action_one_hot.float()), dim=1)
         x = F.relu(self.fc1(state_action))
         x  = F.relu(self.fc2(x))

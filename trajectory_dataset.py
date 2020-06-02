@@ -46,7 +46,7 @@ class TrajectoryDataset(Dataset):
 
         self.max_replay_history = max_replay_history
 
-        self.original_trajectories = self.restructure_original(np.array(trajectories))
+        self.original_trajectories = self.restructure_original(trajectories)
 
         if len(self.transitions) > self.max_replay_history:
             self.transitions = self.transitions[len(self.transitions) - self.max_replay_history:]
@@ -93,7 +93,7 @@ class TrajectoryDataset(Dataset):
             self.transitions = np.concatenate((self.transitions[old_start_index:],new_transitions))
         else:
             self.transitions = np.concatenate((self.transitions, new_transitions))
-        self.original_trajectories = self.restructure_original(np.concatenate((self.original_trajectories, np.array(trajectories))))
+        self.original_trajectories = self.restructure_original(self.original_trajectories + np.array(trajectories))
 
     def restructure_original(self, trajectories):
         """
@@ -111,9 +111,9 @@ class TrajectoryDataset(Dataset):
                 idx_traj += 1
                 next_trajectory = trajectories[idx_traj]
             if idx_traj <= len(trajectories) - 1:
-                return np.concatenate((trajectories[idx_traj][idx_start:], trajectories[idx_traj + 1:]))
+                return [trajectories[idx_traj][idx_start:]] + trajectories[idx_traj + 1:]
             elif idx_traj > len(trajectories) - 1:
-                return np.array([]) # I don't think this should ever occur
+                return [] # I don't think this should ever occur
         else:
             return trajectories
 
@@ -124,3 +124,16 @@ class TrajectoryDataset(Dataset):
                 trajectories in their original formatting
         """
         return self.original_trajectories
+
+
+
+#         Traceback (most recent call last):
+#   File "./main.py", line 48, in <module>
+#     main()
+#   File "./main.py", line 44, in main
+#     max_replay_history=args.max_replay
+#   File "/home/graham/Documents/rl_project/train_dqn.py", line 87, in train
+#     dataset = TrajectoryDataset(init_trajectories, max_replay_history=max_replay_history)
+#   File "/home/graham/Documents/rl_project/trajectory_dataset.py", line 17, in __init__
+#     self.transitions = np.array([transition for trajectory in trajectories for transition in trajectory], dtype=float)
+# ValueError: setting an array element with a sequence.

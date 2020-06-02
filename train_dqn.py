@@ -20,7 +20,6 @@ def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
         r : batch of rewards (N,)
         s_prime : (N, |S|)
         q_
-∂
     return:
         a scalar value representing the loss
     """
@@ -121,7 +120,15 @@ def train(
                 r = r.cuda()
                 s_prime = s_prime.cuda()
 
-            loss = compute_loss(s, a.squeeze(), r.squeeze(), s_prime, dqn, discount_factor, dqn_prime)
+            try:
+                loss = compute_loss(s, a.squeeze() if a.squeeze().dim() != 0 else torch.tensor([torch.tensor(a.squeeze())]), r.squeeze(), s_prime, dqn, discount_factor, dqn_prime)
+            except Exception as e:
+                print(e)
+                print(s, s.shape, s.squeeze(), s.squeeze().shape)
+                print(a, a.shape, a.squeeze(), a.squeeze().shape)
+                print(r, r.shape, r.squeeze(), r.squeeze().shape)
+                print(s_prime, s_prime.shape, s_prime.squeeze(), s_prime.squeeze().shape)
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

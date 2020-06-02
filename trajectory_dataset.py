@@ -93,7 +93,7 @@ class TrajectoryDataset(Dataset):
             self.transitions = np.concatenate((self.transitions[old_start_index:],new_transitions))
         else:
             self.transitions = np.concatenate((self.transitions, new_transitions))
-        self.original_trajectories = self.restructure_original(self.original_trajectories + np.array(trajectories))
+        self.original_trajectories = self.restructure_original(self.original_trajectories + trajectories)
 
     def restructure_original(self, trajectories):
         """

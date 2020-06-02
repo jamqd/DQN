@@ -13,7 +13,7 @@ def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, re
 		while timesteps == None or t < timesteps:
 			if render:
 				env.render()
-			if dqn and random.random() < epsilon:
+			if dqn and random.random() <= epsilon:
 				action = torch.squeeze(dqn.forward_best_actions([observation])[0]).item()
 			else: 
 				action = env.action_space.sample()  # random sample of action space

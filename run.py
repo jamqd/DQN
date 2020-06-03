@@ -4,7 +4,7 @@ import numpy as np
 import random
 
 #given environment, number of episodes and timesteps, run environment and return sarsa or sar trajectories
-def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, render=False, verbose=False, epsilon=0.9):
+def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, render=False, verbose=False, epsilon=0.1):
 	trajectories = []
 	for i_episode in range(episodes):
 		observation = env.reset()
@@ -13,7 +13,7 @@ def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, re
 		while timesteps == None or t < timesteps:
 			if render:
 				env.render()
-			if dqn and random.random() <= epsilon:
+			if dqn and random.random() > epsilon:
 				action = torch.squeeze(dqn.forward_best_actions([observation])[0]).item()
 			else: 
 				action = env.action_space.sample()  # random sample of action space
@@ -28,7 +28,8 @@ def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, re
 			trajectories.append(sar_to_sarsa(sar_traj))
 		else:
 			trajectories.append(sar_traj)
-	return np.asarray(trajectories)
+	# return np.asarray(trajectories)
+	return trajectories
 
 #convert sar to sarsa trajectories
 def sar_to_sarsa(sar_traj):

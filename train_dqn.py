@@ -50,7 +50,8 @@ def train(
     n_threads=1,
     copy_params_every=100,
     save_model_every=100,
-    max_replay_history=1000000
+    max_replay_history=1000000,
+    freq_report_log=5
 ):
     """
     param:
@@ -102,7 +103,10 @@ def train(
 
     writer = SummaryWriter()
     for i in range(iterations):
-        print("Iteration {}".format(i))
+        if torch.cuda.is_available():
+            print("Iteration {}, Transitions {}, MemAlloc {}".format(i, len(dataset), torch.cuda.memory_allocated()))
+        else:
+            print("Iteration {}, Transitions {}".format(i, len(dataset)))
         if use_ddqn and i % copy_params_every == 0:
             dqn_prime.load_state_dict(dqn.state_dict())
         
@@ -121,7 +125,7 @@ def train(
                 s_prime = s_prime.cuda()
 
             try:
-                loss = compute_loss(s, a.squeeze() if a.squeeze().dim() != 0 else torch.tensor([torch.tensor(a.squeeze())]), r.squeeze(), s_prime, dqn, discount_factor, dqn_prime)
+                loss = compute_loss(s, a.squeeze() if a.squeeze().dim() != 0 else torch.tensor([a.squeeze()]), r.squeeze(), s_prime, dqn, discount_factor, dqn_prime)
             except Exception as e:
                 print(e)
                 print(s, s.shape, s.squeeze(), s.squeeze().shape)
@@ -133,23 +137,27 @@ def train(
             loss.backward()
             optimizer.step()
 
-        all_traj = dataset.get_trajectories()
-        q_difference = q_diff(dqn, all_traj)
+        if i % freq_report_log == 0:
+            start_time = datetime.datetime.now()
+            all_traj = dataset.get_trajectories()
+            q_difference = q_diff(dqn, all_traj)
 
-        sums = []
-        for traj in all_traj:
-            sum_reward = sum([sarsa[2] for sarsa in traj])/len(traj)
-            sums.append(sum_reward)
-        undiscounted_avg_reward = sum(sums)/len(sums)
+            sums = []
+            for traj in all_traj:
+                sum_reward = sum([sarsa[2] for sarsa in traj])/len(traj)
+                sums.append(sum_reward)
+            undiscounted_avg_reward = sum(sums)/len(sums)
 
-        writer.add_scalar("QDiff", q_difference, i)
-        writer.add_scalar("AvgReward", undiscounted_avg_reward, i) #calculate this reward
-        
+            writer.add_scalar("QDiff", q_difference, i)
+            writer.add_scalar("AvgReward", undiscounted_avg_reward, i) #calculate this reward
+            
+            print("Time to compute avgreward and qdiff {}".format((datetime.datetime.now() - start_time).total_seconds()))
+
         if i% save_model_every == 0:
             torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-","_").replace(" ","_").replace(":",".") + ".pt")
         
         # collect trajectories
-        trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn)
+        trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn, epsilon=np.power(0.99, i))
         dataset.add(trajectories)
         dataloader = torch.utils.data.DataLoader(dataset,
             batch_size=batch_size,

@@ -1,6 +1,6 @@
 from torch.utils.data import Dataset
 import numpy as np
-
+import torch
 
 # I'm assuming we're using a dataloader to sample the data and perform gradient descent on it
 # so this code is unbelievably simple. 
@@ -112,8 +112,8 @@ class TrajectoryDataset(Dataset):
                 next_trajectory = trajectories[idx_traj]
             if idx_traj <= len(trajectories) - 1:
                 return [trajectories[idx_traj][idx_start:]] + trajectories[idx_traj + 1:]
-            elif idx_traj > len(trajectories) - 1:
-                return [] # I don't think this should ever occur
+            else:
+                return trajectories
         else:
             return trajectories
 

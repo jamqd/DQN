@@ -139,14 +139,15 @@ def train(
 
         if i % freq_report_log == 0:
             start_time = datetime.datetime.now()
-            all_traj = dataset.get_trajectories()
+            all_traj, avg_rewards = dataset.get_trajectories()
             q_difference = q_diff(dqn, all_traj)
 
-            sums = []
-            for traj in all_traj:
-                sum_reward = sum([sarsa[2] for sarsa in traj])/len(traj)
-                sums.append(sum_reward)
-            undiscounted_avg_reward = sum(sums)/len(sums)
+            # sums = []
+            # for traj in all_traj:
+            #     sum_reward = sum([sarsa[2] for sarsa in traj])/len(traj)
+            #     sums.append(sum_reward)
+            # undiscounted_avg_reward = sum(sums)/len(sums)
+            undiscounted_avg_reward = sum(avg_rewards)/len(avg_rewards)
 
             writer.add_scalar("QDiff", q_difference, i)
             writer.add_scalar("AvgReward", undiscounted_avg_reward, i) #calculate this reward

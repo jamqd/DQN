@@ -42,11 +42,13 @@ class TrajectoryDataset(Dataset):
                 # print(test.shape)
                 self.transitions.append(test)
 
+        self.trajectory_avg_reward = [sum([sarsa[2] for sarsa in trajectory])/len(trajectory) for trajectory in trajectories]
+
         self.transitions = np.array(self.transitions)
 
         self.max_replay_history = max_replay_history
 
-        self.original_trajectories = self.restructure_original(trajectories)
+        self.original_trajectories, self.trajectory_avg_reward = self.restructure_original(trajectories, self.trajectory_avg_reward)
 
         if len(self.transitions) > self.max_replay_history:
             self.transitions = self.transitions[len(self.transitions) - self.max_replay_history:]
@@ -93,9 +95,11 @@ class TrajectoryDataset(Dataset):
             self.transitions = np.concatenate((self.transitions[old_start_index:],new_transitions))
         else:
             self.transitions = np.concatenate((self.transitions, new_transitions))
-        self.original_trajectories = self.restructure_original(self.original_trajectories + trajectories)
 
-    def restructure_original(self, trajectories):
+        self.trajectory_avg_reward = self.trajectory_avg_reward + [sum([sarsa[2] for sarsa in trajectory])/len(trajectory) for trajectory in trajectories]
+        self.original_trajectories, self.trajectory_avg_reward = self.restructure_original(self.original_trajectories + trajectories, )
+
+    def restructure_original(self, trajectories, traj_avg_reward):
         """
             param:
                 trajectories: list of trajectories composed of sarsa tuples
@@ -111,11 +115,12 @@ class TrajectoryDataset(Dataset):
                 idx_traj += 1
                 next_trajectory = trajectories[idx_traj]
             if idx_traj <= len(trajectories) - 1:
-                return [trajectories[idx_traj][idx_start:]] + trajectories[idx_traj + 1:]
+                clipped_portion = trajectories[idx_traj][idx_start:]
+                return [clipped_portion] + trajectories[idx_traj + 1:], [sum([sarsa[2] for sarsa in clipped_portion])/len(clipped_portion)] + traj_avg_reward[idx_traj + 1:]
             else:
-                return trajectories
+                return trajectories, traj_avg_reward
         else:
-            return trajectories
+            return trajectories, traj_avg_reward
 
     def get_trajectories(self):
         """

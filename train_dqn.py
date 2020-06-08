@@ -155,8 +155,13 @@ def train(
                 terminal = 1 if done else 0
                 dataset.add([observation, action, reward, observation_, terminal])
                 # sample random transition from replay memory
+<<<<<<< HEAD
                 trans = next(iter(dataloader))
                 s, a, r, s_prime, done = unpack_dataloader_sarsd(sarsd, obs_space_dim)
+=======
+                sarsd = next(iter(dataloader))
+                s, a, r, s_prime, done = unpack_dataloader_sarsd(sarsd)
+>>>>>>> 3c534a437b85fe0805edf051b3c8dfd3ac26b534
                 if torch.cuda.is_available():
                     s = s.cuda()
                     a = a.cuda()

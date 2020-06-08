@@ -34,10 +34,12 @@ def cumulative_discounted_rewards(trajectories):
             # print(trajectory)
             # print("$$$$$")
             # print(trajectory_list, len(trajectory_list))
+            count = 1
             for k in range(j, len(trajectory_list)):
                 # print(discount_factor)
                 # print(len(trajectory_list) - 1 -k)
-                discounted_return += (discount_factor ** int(len(trajectory_list) - 1 - k)) * trajectory_list[k][2]
+                discounted_return += (discount_factor ** count) * trajectory_list[k][2]
+                count += 1
             
             curr_rewards.append(discounted_return)
         

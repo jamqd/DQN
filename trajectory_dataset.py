@@ -37,7 +37,6 @@ class TrajectoryDataset(Dataset):
                 # print(a_prime)
 
 
-
                 test = np.concatenate((s,[a],[r],s_prime,[a_prime]))
                 # print(test.shape)
                 self.transitions.append(test)
@@ -96,8 +95,9 @@ class TrajectoryDataset(Dataset):
         else:
             self.transitions = np.concatenate((self.transitions, new_transitions))
 
-        self.trajectory_avg_reward = self.trajectory_avg_reward + [sum([sarsa[2] for sarsa in trajectory])/len(trajectory) for trajectory in trajectories]
-        self.original_trajectories, self.trajectory_avg_reward = self.restructure_original(self.original_trajectories + trajectories, )
+        # self.trajectory_avg_reward = self.trajectory_avg_reward + [sum([sarsa[2] for sarsa in trajectory])/len(trajectory) for trajectory in trajectories]
+        self.trajectory_avg_reward = self.trajectory_avg_reward + [sum([sarsa[2] for sarsa in trajectory]) for trajectory in trajectories]
+        self.original_trajectories, self.trajectory_avg_reward = self.restructure_original(self.original_trajectories + trajectories, self.trajectory_avg_reward)
 
     def restructure_original(self, trajectories, traj_avg_reward):
         """
@@ -116,7 +116,11 @@ class TrajectoryDataset(Dataset):
                 next_trajectory = trajectories[idx_traj]
             if idx_traj <= len(trajectories) - 1:
                 clipped_portion = trajectories[idx_traj][idx_start:]
-                return [clipped_portion] + trajectories[idx_traj + 1:], [sum([sarsa[2] for sarsa in clipped_portion])/len(clipped_portion)] + traj_avg_reward[idx_traj + 1:]
+                if clipped_portion:
+                    return [clipped_portion] + trajectories[idx_traj + 1:], traj_avg_reward[idx_traj:]
+                    # return [clipped_portion] + trajectories[idx_traj + 1:], [sum([sarsa[2] for sarsa in clipped_portion])/len(clipped_portion)] + traj_avg_reward[idx_traj + 1:]
+                else:
+                    return trajectories[idx_traj + 1:], traj_avg_reward[idx_traj + 1:]
             else:
                 return trajectories, traj_avg_reward
         else:
@@ -128,8 +132,7 @@ class TrajectoryDataset(Dataset):
             return:
                 trajectories in their original formatting
         """
-        return self.original_trajectories
-
+        return self.original_trajectories, self.trajectory_avg_reward
 
 
 #         Traceback (most recent call last):

@@ -30,6 +30,7 @@ def main():
     parser.add_argument('--batch_size', dest='batch_size', default=128, help = "batch size for gradient update", type=int)
     parser.add_argument('--n_threads', dest='n_threads', default=1, help = "number of threads to use", type=int)
     parser.add_argument('--max_replay', dest='max_replay', default=1000000, help = "how many transitions to store", type=int)
+    parser.add_argument('--epsilon', dest='epsilon', default=0.99, help = "epsilon to use in e greedy", type=float)
     args = parser.parse_args()
 
     train(
@@ -41,7 +42,8 @@ def main():
         use_ddqn=args.use_ddqn,
         batch_size=args.batch_size,
         n_threads=args.n_threads,
-        max_replay_history=args.max_replay
+        max_replay_history=args.max_replay,
+        epsilon=args.epsilon
     )
 
 if __name__ == "__main__":

@@ -53,8 +53,7 @@ class DQN(nn.Module):
         """
 
         q = self.forward(state)
-        best_action = torch.argmax(q, 1)
-        best_q = torch.max(q, 1)
+        best_q, best_action = torch.max(q, 1)
         return best_action, best_q
 
    

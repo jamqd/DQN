@@ -27,16 +27,10 @@ def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     q = dqn.forward(s)[torch.arange(N), a.long()]
     if dqn_prime: # using ddqn and target network
         bootstrap = dqn_prime.forward(s_prime)[torch.arange(N), dqn.forward_best_actions(s_prime)[0]]
-        # if torch.cuda.is_available():
-        #     target = r.cuda() + torch.squeeze(discount_factor * bootstrap)
-        # else:
-        print(bootstrap,shape)
-        target = r + torch.squeeze(discount_factor * bootstrap)
+        target = r + discount_factor * bootstrap
     else:
         bootstrap = dqn.forward_best_actions(s_prime)[1]
-        # if torch.cuda.is_available():
-        #     target = r.cuda() + torch.squeeze(discount_factor * bootstrap[0])
-        target = r + torch.squeeze(discount_factor * bootstrap[0])
+        target = r + discount_factor * bootstrap
 
     target.detach() # do not propogate graidents through target
     return F.mse_loss(q, target)
@@ -53,7 +47,8 @@ def train(
     copy_params_every=100,
     save_model_every=100,
     max_replay_history=1000000,
-    freq_report_log=5
+    freq_report_log=5,
+    epsilon=0.99
 ):
     """
     param:
@@ -63,6 +58,20 @@ def train(
         None
 
     """
+
+    print("Using learning_rate={}".format(learning_rate))
+    print("Using discount_factor={}".format(discount_factor))
+    print("Using env_name={}".format(env_name))
+    print("Using iterations={}".format(iterations))
+    print("Using episodes_per_iteration={}".format(episodes_per_iteration))
+    print("Using use_ddqn={}".format(use_ddqn))
+    print("Using batch_size={}".format(batch_size))
+    print("Using n_threads={}".format(n_threads))
+    print("Using copy_params_every={}".format(copy_params_every))
+    print("Using save_model_every={}".format(save_model_every))
+    print("Using max_replay_history={}".format(max_replay_history))
+    print("Using freq_report_log={}".format(freq_report_log))
+    print("Using epsilon={}".format(epsilon))
 
     if not os.path.isdir("./models/"):
         os.mkdir("./models/")
@@ -88,10 +97,18 @@ def train(
     # collect trajectories with random policy
     init_trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn)
     dataset = TrajectoryDataset(init_trajectories, max_replay_history=max_replay_history)
+    # print(init_trajectories)
     dataloader = torch.utils.data.DataLoader(dataset,
         batch_size=batch_size,
-        shuffle=True,
-        num_workers=n_threads)
+        # shuffle=True,
+        num_workers=n_threads,
+        sampler=torch.utils.data.RandomSampler(dataset),
+        )
+
+    # randomsampler = torch.utils.data.RandomSampler(dataset,
+    #     num_samples = batch_size,
+    #     replacement = False
+    # )
 
     dqn_prime=None
     if use_ddqn:
@@ -103,6 +120,8 @@ def train(
 
     optimizer = optim.Adam(dqn.parameters())
 
+    # torch.utils.data.RandomSampler(data_source, replacement=False, num_samples=None)
+
     writer = SummaryWriter()
     for i in range(iterations):
         if torch.cuda.is_available():
@@ -113,37 +132,37 @@ def train(
             dqn_prime.load_state_dict(dqn.state_dict())
         
         # fitted Q-iteration
-        for sarsa in dataloader:
-            N = len(sarsa)
+        sarsa = next(iter(dataloader))
 
-            s = sarsa[:, :obs_space_dim]
-            s = torch.reshape(s, (N, obs_space_dim))
+        N = len(sarsa)
+        s = sarsa[:, :obs_space_dim]
+        s = torch.reshape(s, (N, obs_space_dim))
 
-            a = sarsa[:, obs_space_dim:obs_space_dim + 1]
-            a = torch.reshape(a, (N,))
-            
-            r = sarsa[:, obs_space_dim + 1 : obs_space_dim + 1 + 1]
-            r = torch.reshape(r, (N,))
+        a = sarsa[:, obs_space_dim:obs_space_dim + 1]
+        a = torch.reshape(a, (N,))
+        
+        r = sarsa[:, obs_space_dim + 1 : obs_space_dim + 1 + 1]
+        r = torch.reshape(r, (N,))
 
-            s_prime = sarsa[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
-            s_prime = torch.reshape(s_prime, (N, obs_space_dim))
+        s_prime = sarsa[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
+        s_prime = torch.reshape(s_prime, (N, obs_space_dim))
 
-            a_prime = sarsa[:, obs_space_dim + 1 + 1 + obs_space_dim:]
-            a_prime = torch.reshape(a_prime, (N,))
+        a_prime = sarsa[:, obs_space_dim + 1 + 1 + obs_space_dim:]
+        a_prime = torch.reshape(a_prime, (N,))
 
+        print(f"sarsa {sarsa.shape} {s.shape} {a.shape} {r.shape} {s_prime.shape}")
 
-            
-            if torch.cuda.is_available():
-                s = s.cuda()
-                a = a.cuda()
-                r = r.cuda()
-                s_prime = s_prime.cuda()
+        if torch.cuda.is_available():
+            s = s.cuda()
+            a = a.cuda()
+            r = r.cuda()
+            s_prime = s_prime.cuda()
 
-            loss = compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
+        loss = compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
         if i % freq_report_log == 0:
             start_time = datetime.datetime.now()
@@ -166,22 +185,23 @@ def train(
             torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-","_").replace(" ","_").replace(":",".") + ".pt")
         
         # collect trajectories
-        trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn, epsilon=np.power(0.99, i))
+        trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn, epsilon=np.power(epsilon, i))
         dataset.add(trajectories)
-        dataloader = torch.utils.data.DataLoader(dataset,
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=n_threads)
+        # dataloader = torch.utils.data.DataLoader(dataset,
+        #     batch_size=batch_size,
+        #     shuffle=True,
+        #     num_workers=n_threads)
 
     env.close()
 
 def q_diff(dqn, trajectories):
     s = [sarsa[0] for traj in trajectories for sarsa in traj]
     a = [sarsa[1] for traj in trajectories for sarsa in traj]
+    N = len(s)
     if torch.cuda.is_available():
-        q = dqn.forward(s, a).squeeze().detach().cpu().numpy()
+        q = dqn.forward(s).detach().cpu().numpy()[np.arange(N), a]
     else:
-        q = dqn.forward(s, a).squeeze().detach().numpy()
+        q = dqn.forward(s).detach().numpy()[np.arange(N), a]
     q_empirical = qvalues.cumulative_discounted_rewards(trajectories)
     q_empirical = np.concatenate([q_t for q_t in q_empirical])
     diff = q - q_empirical

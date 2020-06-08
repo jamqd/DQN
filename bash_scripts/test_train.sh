@@ -5,4 +5,5 @@ python ./main.py \
     --iterations 2 \
     --episodes 2 \
     --batch_size 16 \
+    --use_ddqn true\
     --n_threads 1 \

@@ -48,8 +48,10 @@ def train(
     max_replay_history=1000000,
     freq_report_log=5,
     online=False,
-    epsilon=0.99,
-    render=False
+    epsilon=0.995,
+    render=False,
+    eval_episodes=16,
+    gd_optimizer="RMSprop"
 ):
     """
     param:
@@ -73,6 +75,8 @@ def train(
     print("Using max_replay_history={}".format(max_replay_history))
     print("Using freq_report_log={}".format(freq_report_log))
     print("Using epsilon={}".format(epsilon))
+    print("Using eval_episodes={}".format(eval_episodes))
+    print("Using gd_optimizer={}".format(gd_optimizer))
 
     if not os.path.isdir("./models/"):
         os.mkdir("./models/")
@@ -95,6 +99,23 @@ def train(
         print("DQN on GPU")
         dqn = dqn.cuda()
 
+    dqn_prime=None
+    if use_ddqn:
+        print("Using DDQN")
+        dqn_prime = DQN(obs_space_dim, action_space_dim)
+        if torch.cuda.is_available():
+            print("DQN Prime on GPU")
+            dqn_prime = dqn_prime.cuda()
+
+    if gd_optimizer == "ADAM":
+        optimizer = optim.Adam(dqn.parameters(), lr=learning_rate)
+    elif gd_optimizer == "SGD":
+        optimizer = optim.SGD(dqn.parameters(), lr=learning_rate)
+    else:
+        optimizer = optim.RMSprop(dqn.parameters(), lr=learning_rate)
+
+
+    # gradient step every time a transition is collected
     if online:
         #initialize dataset
         replay = []
@@ -149,47 +170,30 @@ def train(
         return
 
 
+    # collect multiple trajectories every iteration
 
     # collect trajectories with random policy
     init_trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn)
     dataset = TrajectoryDataset(init_trajectories, max_replay_history=max_replay_history)
-    # print(init_trajectories)
     dataloader = torch.utils.data.DataLoader(dataset,
         batch_size=batch_size,
-        # shuffle=True,
         num_workers=n_threads,
         sampler=torch.utils.data.RandomSampler(dataset),
         )
 
-    # randomsampler = torch.utils.data.RandomSampler(dataset,
-    #     num_samples = batch_size,
-    #     replacement = False
-    # )
 
-    dqn_prime=None
-    if use_ddqn:
-        print("Using DDQN")
-        dqn_prime = DQN(obs_space_dim, action_space_dim)
-        if torch.cuda.is_available():
-            print("DQN Prime on GPU")
-            dqn_prime = dqn_prime.cuda()
-
-    optimizer = optim.Adam(dqn.parameters())
-
-    # torch.utils.data.RandomSampler(data_source, replacement=False, num_samples=None)
-
-    writer = SummaryWriter()
+    summary_writer = SummaryWriter()
     for i in range(iterations):
         if torch.cuda.is_available():
             print("Iteration {}, Transitions {}, MemAlloc {}".format(i, len(dataset), torch.cuda.memory_allocated()))
         else:
             print("Iteration {}, Transitions {}".format(i, len(dataset)))
         if use_ddqn and i % copy_params_every == 0:
+            print("Copying dqn to dqn_prim")
             dqn_prime.load_state_dict(dqn.state_dict())
         
         # fitted Q-iteration
         sarsa = next(iter(dataloader))
-
         N = len(sarsa)
         s = sarsa[:, :obs_space_dim]
         s = torch.reshape(s, (N, obs_space_dim))
@@ -203,9 +207,6 @@ def train(
         s_prime = sarsa[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
         s_prime = torch.reshape(s_prime, (N, obs_space_dim))
 
-        a_prime = sarsa[:, obs_space_dim + 1 + 1 + obs_space_dim:]
-        a_prime = torch.reshape(a_prime, (N,))
-
         print(f"sarsa {sarsa.shape} {s.shape} {a.shape} {r.shape} {s_prime.shape}")
 
         if torch.cuda.is_available():
@@ -215,40 +216,42 @@ def train(
             s_prime = s_prime.cuda()
 
         loss = compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
-
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        if i % freq_report_log == 0:
-            start_time = datetime.datetime.now()
-            all_traj, avg_rewards = dataset.get_trajectories()
-            q_difference = q_diff(dqn, all_traj)
-
-            # sums = []
-            # for traj in all_traj:
-            #     sum_reward = sum([sarsa[2] for sarsa in traj])/len(traj)
-            #     sums.append(sum_reward)
-            # undiscounted_avg_reward = sum(sums)/len(sums)
-            undiscounted_avg_reward = sum(avg_rewards)/len(avg_rewards)
-
-            writer.add_scalar("QDiff", q_difference, i)
-            writer.add_scalar("AvgReward", undiscounted_avg_reward, i) #calculate this reward
-            
-            print("Time to compute avgreward and qdiff {}".format((datetime.datetime.now() - start_time).total_seconds()))
-
-        if i% save_model_every == 0:
-            torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-","_").replace(" ","_").replace(":",".") + ".pt")
         
         # collect trajectories
         trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn, epsilon=np.power(epsilon, i))
         dataset.add(trajectories)
-        # dataloader = torch.utils.data.DataLoader(dataset,
-        #     batch_size=batch_size,
-        #     shuffle=True,
-        #     num_workers=n_threads)
+
+
+        # log evaluation metrics
+        if i % freq_report_log == 0:
+            start_time = datetime.datetime.now()
+            log_evaluate(env, dqn, eval_episodes, summary_writer)
+            print("Time to compute avgreward and qdiff {}".format((datetime.datetime.now() - start_time).total_seconds()))
+
+        if i% save_model_every == 0:
+            torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-","_").replace(" ","_").replace(":",".") + ".pt")
+
 
     env.close()
+
+def log_evaluate(env, dqn, num_episodes, summary_writer):
+    trajectories = collect_trajectories(env, num_episodes, dqn)
+
+    # average reward per trajectory
+    undiscounted_avg_reward = sum([sarsa[2] for traj in trajectories for sarsa in traj])/len(trajectories)
+    summary_writer.add_scalar("AvgReward", undiscounted_avg_reward, i) 
+
+    # absolute difference between empirical q and q from network
+    q_difference = q_diff(dqn, trajectories)
+    summary_writer.add_scalar("QDiff", q_difference, i)
+   
+
+    
+
 
 def q_diff(dqn, trajectories):
     s = [sarsa[0] for traj in trajectories for sarsa in traj]

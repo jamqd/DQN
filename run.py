@@ -4,7 +4,7 @@ import numpy as np
 import random
 
 #given environment, number of episodes and timesteps, run environment and return sarsa or sar trajectories
-def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, render=False, verbose=False, epsilon=0.1):
+def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, render=False, verbose=False, epsilon=0):
 	trajectories = []
 	for i_episode in range(episodes):
 		observation = env.reset()

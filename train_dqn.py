@@ -175,11 +175,8 @@ def train(
         env.close()
         return
 
-
-    # collect multiple trajectories every iteration
-
     # collect trajectories with random policy
-    init_trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn)
+    init_trajectories = collect_trajectories(env, episodes_per_iteration, sarsa=False, dqn=dqn)
     dataset = TrajectoryDataset(init_trajectories, max_replay_history=max_replay_history)
     dataloader = torch.utils.data.DataLoader(dataset,
         batch_size=batch_size,
@@ -226,7 +223,7 @@ def train(
 
         
         # collect trajectories
-        trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn, epsilon=np.power(epsilon, i))
+        trajectories = collect_trajectories(env, episodes_per_iteration, sarsa=False, dqn=dqn, epsilon=np.power(epsilon, i))
         dataset.add(trajectories)
 
 
@@ -243,7 +240,7 @@ def train(
     env.close()
 
 def log_evaluate(env, dqn, num_episodes, summary_writer):
-    trajectories = collect_trajectories(env, num_episodes, dqn)
+    trajectories = collect_trajectories(env, num_episodes, sarsa=False, dqn)
 
     # average reward per trajectory
     undiscounted_avg_reward = sum([sarsa[2] for traj in trajectories for sarsa in traj])/len(trajectories)

@@ -28,18 +28,15 @@ def compute_loss(s, a, r, s_prime, done, dqn, discount_factor, dqn_prime=None):
     q = dqn.forward(s)[torch.arange(N), a.long()]
     if dqn_prime: # using ddqn and target network
         bootstrap = dqn_prime.forward(s_prime)[torch.arange(N), dqn.forward_best_actions(s_prime)[0]]
-        if done:
-            target = r
-        else:
-            target = r + discount_factor * bootstrap
     else:
         bootstrap = dqn.forward_best_actions(s_prime)[1]
-        if done:
-            target = r
-        else:
-            target = r + discount_factor * bootstrap
-    target.detach() # do not propogate gradients through target
-    return F.mse_loss(q, target)
+    target = None
+    if done:
+        target = r
+    else:
+        target = r + discount_factor * bootstrap
+    target = target.detach() # do not propogate gradients through targets
+    return F.mse_loss(q, target.float())
 
 def train(
     learning_rate=0.00025,

@@ -50,7 +50,8 @@ def train(
     max_replay_history=1000000,
     freq_report_log=5,
     online=False,
-    epsilon=0.99
+    epsilon=0.99,
+    render=False
 ):
     """
     param:
@@ -97,33 +98,51 @@ def train(
         dqn = dqn.cuda()
 
     if online:
-        #go through episodes
+        #initialize dataset
+        replay = []
+        observation, reward, done, info = env.step(env.action_space(action))
+        replay.append([observation, action, reward, observation])
+        dataset = TrajectoryDataset(replay, max_replay_history=max_replay_history)
+        dataloader = torch.utils.data.DataLoader(dataset,
+                                                 batch_size=batch_size,
+                                                 # shuffle=True,
+                                                 num_workers=n_threads,
+                                                 sampler=torch.utils.data.RandomSampler(dataset),
+                                                 )
+        # go through episodes
         for i_episode in range(episodes_per_iteration):
             observation = env.reset()
             t = 0
-            replay = []
             while True: #repeat
                 if render:
                     env.render()
                 #selecting an action
-                if dqn and random.random() > 0.1:
+                if dqn and random.random() > epsilon:
                     action = torch.squeeze(dqn.forward_best_actions([observation])[0]).item()
                 else:
                     action = env.action_space.sample()  # random sample of action space
                 #carry out action, observe new reward and state
                 observation_, reward, done, info = env.step(action)
                 #store experience in replay memory
-                replay.append([observation, action, reward, observation_, done])
+                dataset.add([observation, action, reward, observation_])
                 #sample random transition from replay memory
-                trans = random.choice(replay)
+                trans = next(iter(dataloader))
                 #calculate target for each minibatch transition
                 target = None
-                if trans[4] is True:
+                if terminal: #???
                     target_ = reward
                 else:
                     target = reward + discount_factor*dqn.forward(trans[3], action)
                 #train / update gradient
-
+                dqn_prime = None
+                if use_ddqn:
+                    print("Using DDQN")
+                    dqn_prime = DQN(obs_space_dim, action_space_dim)
+                optimizer = optim.Adam(dqn.parameters())
+                loss = compute_loss(trans[0], trans[1], trans[2], trans[3], dqn, discount_factor, dqn_prime)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step() #does the gradient update, loss computed update
                 #change current state
                 observation = observation_
                 if done:

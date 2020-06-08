@@ -68,9 +68,9 @@ class TrajectoryDataset(Dataset):
                 done = transition[4]
                 
                 if torch.cuda.is_available():
-                    trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[done]))).cuda()
+                    trans_tensor = torch.Tensor(s + [a] + [r] + s_prime +[done]).cuda()
                 else:
-                    trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[done])))
+                    trans_tensor = torch.Tensor(s + [a] + [r] + s_prime +[done])
 
                 new_transitions[idx] = trans_tensor
                 idx+=1
@@ -140,11 +140,13 @@ class TrajectoryDataset(Dataset):
         r = transition[2]
         s_prime = transition[3]
         done = transition[4]
+
+        print(s)
         
         if torch.cuda.is_available():
-            trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[done]))).cuda()
+            trans_tensor = torch.Tensor(s + [a] + [r] + s_prime +[done]).cuda()
         else:
-            trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[done])))
+            trans_tensor = torch.Tensor(s + [a] + [r] + s_prime +[done])
 
         if self.transitions.size == torch.Size([0]):
             self.transitions = trans_tensor.reshape((1,len(trans_tensor)))

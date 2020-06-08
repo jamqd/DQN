@@ -156,7 +156,14 @@ def train(
                 dataset.add([observation, action, reward, observation_, terminal])
                 # sample random transition from replay memory
                 trans = next(iter(dataloader))
-                loss = compute_loss(trans[0], trans[1], trans[2], trans[3], trans[4], dqn, discount_factor, dqn_prime)
+                s, a, r, s_prime, done = unpack_dataloader_sarsd(sarsd)
+                if torch.cuda.is_available():
+                    s = s.cuda()
+                    a = a.cuda()
+                    r = r.cuda()
+                    s_prime = s_prime.cuda()
+                    done = done.cuda()
+                loss =  compute_loss(s, a, r, s_prime, done, dqn, discount_factor, dqn_prime)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()  # does the gradient update, loss computed update
@@ -195,23 +202,8 @@ def train(
             dqn_prime.load_state_dict(dqn.state_dict())
         
         # fitted Q-iteration
-        sarsa = next(iter(dataloader))
-        N = len(sarsa)
-        s = sarsa[:, :obs_space_dim]
-        s = torch.reshape(s, (N, obs_space_dim))
-
-        a = sarsa[:, obs_space_dim:obs_space_dim + 1]
-        a = torch.reshape(a, (N,))
-        
-        r = sarsa[:, obs_space_dim + 1 : obs_space_dim + 1 + 1]
-        r = torch.reshape(r, (N,))
-
-        s_prime = sarsa[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
-        s_prime = torch.reshape(s_prime, (N, obs_space_dim))
-
-        done = sarsa[:, obs_space_dim + 1 + 1 + obs_space_dim: obs_space_dim + 1 + 1 + obs_space_dim + 1]
-        done = torch.reshape(done, (N,))
-
+        sarsd = next(iter(dataloader))
+        s, a, r, s_prime, done = unpack_dataloader_sarsd(sarsd)
         print(f"sarsa {sarsa.shape} {s.shape} {a.shape} {r.shape} {s_prime.shape} {done.shape}")
 
         if torch.cuda.is_available():
@@ -219,6 +211,7 @@ def train(
             a = a.cuda()
             r = r.cuda()
             s_prime = s_prime.cuda()
+            done = done.cuda()
 
         loss = compute_loss(s, a, r, s_prime, done, dqn, discount_factor, dqn_prime)
         optimizer.zero_grad()
@@ -242,6 +235,26 @@ def train(
 
 
     env.close()
+
+def unpack_dataloader_sarsd(sarsd):
+    N = len(sarsd)
+    s = sarsd[:, :obs_space_dim]
+    s = torch.reshape(s, (N, obs_space_dim))
+
+    a = sarsd[:, obs_space_dim:obs_space_dim + 1]
+    a = torch.reshape(a, (N,))
+    
+    r = sarsd[:, obs_space_dim + 1 : obs_space_dim + 1 + 1]
+    r = torch.reshape(r, (N,))
+
+    s_prime = sarsd[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
+    s_prime = torch.reshape(s_prime, (N, obs_space_dim))
+
+    done = sarsd[:, obs_space_dim + 1 + 1 + obs_space_dim: obs_space_dim + 1 + 1 + obs_space_dim + 1]
+    done = torch.reshape(done, (N,))
+
+    return s, a, r, s_prime, done
+
 
 def log_evaluate(env, dqn, num_episodes, summary_writer, iteration):
     trajectories = collect_trajectories(env=env, episodes=num_episodes, dqn=dqn)

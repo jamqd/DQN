@@ -33,7 +33,7 @@ def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     else:
         bootstrap = dqn.forward_best_actions(s_prime)[1]
         # if torch.cuda.is_available():
-        #     target = r.cuda() + torch.squeeze(discount_factor * bootstrap[0])
+        #     target = r.cuda() + torch.squeeze(discount_factor * bootstrap[0])\
         target = r + torch.squeeze(discount_factor * bootstrap[0])
 
     target.detach() # do not propogate graidents through target
@@ -86,10 +86,18 @@ def train(
     # collect trajectories with random policy
     init_trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn)
     dataset = TrajectoryDataset(init_trajectories, max_replay_history=max_replay_history)
+    # print(init_trajectories)
     dataloader = torch.utils.data.DataLoader(dataset,
         batch_size=batch_size,
-        shuffle=True,
-        num_workers=n_threads)
+        # shuffle=True,
+        num_workers=n_threads,
+        sampler=torch.utils.data.RandomSampler(dataset),
+        )
+
+    # randomsampler = torch.utils.data.RandomSampler(dataset,
+    #     num_samples = batch_size,
+    #     replacement = False
+    # )
 
     dqn_prime=None
     if use_ddqn:
@@ -101,6 +109,8 @@ def train(
 
     optimizer = optim.Adam(dqn.parameters())
 
+    # torch.utils.data.RandomSampler(data_source, replacement=False, num_samples=None)
+
     writer = SummaryWriter()
     for i in range(iterations):
         if torch.cuda.is_available():
@@ -111,13 +121,22 @@ def train(
             dqn_prime.load_state_dict(dqn.state_dict())
         
         # fitted Q-iteration
-        for sarsa in dataloader:
+        sarsa = next(iter(dataloader))
+        if True:
             s = sarsa[:, :obs_space_dim]
             a = sarsa[:, obs_space_dim:obs_space_dim + 1]
             r = sarsa[:, obs_space_dim + 1 : obs_space_dim + 1 + 1]
             s_prime = sarsa[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
             a_prime = sarsa[:, obs_space_dim + 1 + 1 + obs_space_dim:]
-            
+
+            torch.reshape(s, (batch_size, obs_space_dim))
+            torch.reshape(a, (batch_size, 1))
+            torch.reshape(r, (batch_size, 1))
+            torch.reshape(s_prime, (batch_size, obs_space_dim))
+            torch.reshape(a_prime, (batch_size, 1))
+
+            print(f"sarsa {sarsa.shape} {s.shape} {a.shape} {r.shape} {s_prime.shape}")
+
             if torch.cuda.is_available():
                 s = s.cuda()
                 a = a.cuda()
@@ -125,7 +144,7 @@ def train(
                 s_prime = s_prime.cuda()
 
             try:
-                loss = compute_loss(s, a.squeeze() if a.squeeze().dim() != 0 else torch.tensor([a.squeeze()]), r.squeeze(), s_prime, dqn, discount_factor, dqn_prime)
+                loss = compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
             except Exception as e:
                 print(e)
                 print(s, s.shape, s.squeeze(), s.squeeze().shape)
@@ -160,10 +179,10 @@ def train(
         # collect trajectories
         trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn, epsilon=np.power(0.99, i))
         dataset.add(trajectories)
-        dataloader = torch.utils.data.DataLoader(dataset,
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=n_threads)
+        # dataloader = torch.utils.data.DataLoader(dataset,
+        #     batch_size=batch_size,
+        #     shuffle=True,
+        #     num_workers=n_threads)
 
     env.close()
 

@@ -6,4 +6,4 @@ python ./main.py \
     --episodes 64 \
     --batch_size 32 \
     --n_threads 4 \
-    --max_replay 500000
+    --max_replay 100000

@@ -34,7 +34,7 @@ def cumulative_discounted_rewards(trajectories):
             # print(trajectory)
             # print("$$$$$")
             # print(trajectory_list, len(trajectory_list))
-            count = 1
+            count = 0
             for k in range(j, len(trajectory_list)):
                 # print(discount_factor)
                 # print(len(trajectory_list) - 1 -k)

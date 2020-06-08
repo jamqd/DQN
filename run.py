@@ -18,7 +18,8 @@ def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, re
 			else: 
 				action = env.action_space.sample()  # random sample of action space
 			observation, reward, done, info = env.step(action)
-			sar_traj.append([observation, action, reward])
+			terminal = 1 if done else 0
+			sar_traj.append([observation, action, reward, terminal])
 			if done:
 				if verbose:
 					print("Episode finished after {} timesteps".format(t + 1))
@@ -36,29 +37,31 @@ def sar_to_sarsa(sar_traj):
 	sarsa_traj = []
 	for i in range(len(sar_traj)):
 		if i != 0:
-			sarsa_traj[len(sarsa_traj) - 1].append(sar_traj[i][0])
-			sarsa_traj[len(sarsa_traj) - 1].append(sar_traj[i][1])
-		if i != len(sar_traj) - 1:
-			sarsa_traj.append(sar_traj[i])
+			sarsa_traj[len(sarsa_traj) - 1].insert(3, sar_traj[i][0])
+			sarsa_traj[len(sarsa_traj) - 1].insert(4, sar_traj[i][1])
+		sarsa_traj.append(sar_traj[i])
+	sarsa_traj[len(sarsa_traj) - 1].insert(3, sar_traj[len(sar_traj) - 1][0])
+	sarsa_traj[len(sarsa_traj) - 1].insert(4, sar_traj[len(sar_traj) - 1][1])
 	return sarsa_traj
 
 
-# def main():
-# 	#example()
-# 	#loop()
-# 	#space()
-# 	#sample_space()
-# 	#get_envs()
-# 	#collect_traj()
-# 	# sar = [["s1", "a1", "r1"], ["s2", "a2", "r2"], ["s3", "a3", "r3"], ["s4", "a4", "r4"]]
-# 	# sarsa = sar_to_sarsa(sar)
-# 	# print(sarsa)
-# 	env = gym.make('LunarLander-v2')
-# 	#space()
-# 	collect_trajectories(env, 100, render=True)
-#
-#
-#
-#
-# if __name__ == '__main__':
-# 	main()
+def main():
+	#example()
+	#loop()
+	#space()
+	#sample_space()
+	#get_envs()
+	#collect_traj()
+	# sar = [["s1", "a1", "r1", 1], ["s2", "a2", "r2", 0], ["s3", "a3", "r3", 0], ["s4", "a4", "r4", 1]]
+	# sarsa = sar_to_sarsa(sar)
+	# print(sarsa)
+	# env = gym.make('LunarLander-v2')
+	# #space()
+	# traj = collect_trajectories(env, 2, render=True)
+	# print(traj)
+
+
+
+
+if __name__ == '__main__':
+	main()

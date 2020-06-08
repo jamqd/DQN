@@ -13,7 +13,7 @@ import datetime
 import qvalues
 import random
 
-def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
+def compute_loss(s, a, r, s_prime, done, dqn, discount_factor, dqn_prime=None):
     """
     param:
         s : (N, |S|)
@@ -30,7 +30,11 @@ def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
         bootstrap = dqn_prime.forward(s_prime)[torch.arange(N), dqn.forward_best_actions(s_prime)[0]]
     else:
         bootstrap = dqn.forward_best_actions(s_prime)[1]
-    target = r + discount_factor * bootstrap
+
+    target = discount_factor * bootstrap
+    done_mask = done  < 0.5
+    target *= done_mask 
+    target += r
     target = target.detach() # do not propogate graadients through targets
     return F.mse_loss(q, target.float())
 
@@ -74,6 +78,7 @@ def train(
     print("Using save_model_every={}".format(save_model_every))
     print("Using max_replay_history={}".format(max_replay_history))
     print("Using freq_report_log={}".format(freq_report_log))
+    print("Using online={}".format(online))
     print("Using epsilon={}".format(epsilon))
     print("Using eval_episodes={}".format(eval_episodes))
     print("Using gd_optimizer={}".format(gd_optimizer))
@@ -204,7 +209,10 @@ def train(
         s_prime = sarsa[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
         s_prime = torch.reshape(s_prime, (N, obs_space_dim))
 
-        print(f"sarsa {sarsa.shape} {s.shape} {a.shape} {r.shape} {s_prime.shape}")
+        done = sarsa[:, obs_space_dim + 1 + 1 + obs_space_dim: obs_space_dim + 1 + 1 + obs_space_dim + 1]
+        done = torch.reshape(done, (N,))
+
+        print(f"sarsa {sarsa.shape} {s.shape} {a.shape} {r.shape} {s_prime.shape} {done.shape}")
 
         if torch.cuda.is_available():
             s = s.cuda()
@@ -212,7 +220,7 @@ def train(
             r = r.cuda()
             s_prime = s_prime.cuda()
 
-        loss = compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
+        loss = compute_loss(s, a, r, s_prime, done, dqn, discount_factor, dqn_prime)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -226,7 +234,7 @@ def train(
         # log evaluation metrics
         if i % freq_report_log == 0:
             start_time = datetime.datetime.now()
-            log_evaluate(env, dqn, eval_episodes, summary_writer)
+            log_evaluate(env, dqn, eval_episodes, summary_writer, i)
             print("Time to compute avgreward and qdiff {}".format((datetime.datetime.now() - start_time).total_seconds()))
 
         if i% save_model_every == 0:
@@ -235,16 +243,16 @@ def train(
 
     env.close()
 
-def log_evaluate(env, dqn, num_episodes, summary_writer):
-    trajectories = collect_trajectories(env, num_episodes, dqn)
+def log_evaluate(env, dqn, num_episodes, summary_writer, iteration):
+    trajectories = collect_trajectories(env=env, episodes=num_episodes, dqn=dqn)
 
     # average reward per trajectory
     undiscounted_avg_reward = sum([sarsa[2] for traj in trajectories for sarsa in traj])/len(trajectories)
-    summary_writer.add_scalar("AvgReward", undiscounted_avg_reward, i) 
+    summary_writer.add_scalar("AvgReward", undiscounted_avg_reward, iteration) 
 
     # absolute difference between empirical q and q from network
     q_difference = q_diff(dqn, trajectories)
-    summary_writer.add_scalar("QDiff", q_difference, i)
+    summary_writer.add_scalar("QDiff", q_difference, iteration)
    
 
 def q_diff(dqn, trajectories):

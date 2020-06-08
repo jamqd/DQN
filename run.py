@@ -59,6 +59,7 @@ def main():
 	# #space()
 	# traj = collect_trajectories(env, 2, render=True)
 	# print(traj)
+	pass
 
 
 

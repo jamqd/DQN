@@ -126,11 +126,10 @@ def train(
     if online:
         # initialize dataset
         observation = env.reset()
-        replay = []
         action = env.action_space.sample()
         observation_, reward, done, info = env.step(action)
         terminal = 1 if done else 0
-        replay.append([observation, action, reward, observation_, terminal])
+        replay = [observation, action, reward, observation_, terminal]
         dataset = TrajectoryDataset(replay, max_replay_history=max_replay_history)
         dataloader = torch.utils.data.DataLoader(dataset,
                                                  batch_size=batch_size,

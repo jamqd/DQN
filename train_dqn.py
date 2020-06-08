@@ -156,7 +156,7 @@ def train(
                 dataset.add([observation, action, reward, observation_, terminal])
                 # sample random transition from replay memory
                 trans = next(iter(dataloader))
-                s, a, r, s_prime, done = unpack_dataloader_sarsd(sarsd)
+                s, a, r, s_prime, done = unpack_dataloader_sarsd(sarsd, obs_space_dim)
                 if torch.cuda.is_available():
                     s = s.cuda()
                     a = a.cuda()
@@ -185,7 +185,7 @@ def train(
 
     # collect trajectories with random policy
     init_trajectories = collect_trajectories(env, episodes_per_iteration, sarsa=False, dqn=dqn)
-    dataset = TrajectoryDataset(init_trajectories, max_replay_history=max_replay_history)
+    dataset = TrajectoryDataset(init_trajectories, max_replay_history=max_replay_history, online=False)
     dataloader = torch.utils.data.DataLoader(dataset,
         batch_size=batch_size,
         num_workers=n_threads,
@@ -203,8 +203,7 @@ def train(
         
         # fitted Q-iteration
         sarsd = next(iter(dataloader))
-        s, a, r, s_prime, done = unpack_dataloader_sarsd(sarsd)
-        print(f"sarsa {sarsa.shape} {s.shape} {a.shape} {r.shape} {s_prime.shape} {done.shape}")
+        s, a, r, s_prime, done = unpack_dataloader_sarsd(sarsd, obs_space_dim)
 
         if torch.cuda.is_available():
             s = s.cuda()
@@ -236,7 +235,7 @@ def train(
 
     env.close()
 
-def unpack_dataloader_sarsd(sarsd):
+def unpack_dataloader_sarsd(sarsd, obs_space_dim):
     N = len(sarsd)
     s = sarsd[:, :obs_space_dim]
     s = torch.reshape(s, (N, obs_space_dim))

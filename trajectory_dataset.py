@@ -16,7 +16,11 @@ class TrajectoryDataset(Dataset):
                 max_replay_history: int indicating the max number of transitions (sarsa tuples) to store
         """
         # self.transitions = np.array([transition for trajectory in trajectories for transition in trajectory], dtype=float)
-        self.transitions = torch.Tensor()
+        if torch.cuda.is_available():
+            self.transitions = torch.Tensor().cuda()
+        else:
+            self.transitions = torch.Tensor()
+
         self.trajectories = []
         self.buffer = []
         self.original_trajectories = []
@@ -68,9 +72,9 @@ class TrajectoryDataset(Dataset):
                 done = transition[4]
                 
                 if torch.cuda.is_available():
-                    trans_tensor = torch.Tensor(s + [a] + [r] + s_prime +[done]).cuda()
+                    trans_tensor = torch.Tensor([*s,a,r,*s_prime,done]).cuda()
                 else:
-                    trans_tensor = torch.Tensor(s + [a] + [r] + s_prime +[done])
+                    trans_tensor = torch.Tensor([*s,a,r,*s_prime,done])
 
                 new_transitions[idx] = trans_tensor
                 idx+=1
@@ -81,7 +85,7 @@ class TrajectoryDataset(Dataset):
             old_start_index = (len(self.transitions) + len(new_transitions)) - self.max_replay_history
             self.transitions = torch.cat((self.transitions[old_start_index:],new_transitions))
         else:
-            self.transitions = torch.cat((self.transitions, new_transitions))
+            self.transitions = torch.cat((self.transitions.float(), new_transitions.float()))
         self.add_trajectories(trajectories)
 
     def add_trajectories(self, trajectories):
@@ -140,8 +144,6 @@ class TrajectoryDataset(Dataset):
         r = transition[2]
         s_prime = transition[3]
         done = transition[4]
-
-        print(s)
         
         if torch.cuda.is_available():
             trans_tensor = torch.Tensor(s + [a] + [r] + s_prime +[done]).cuda()

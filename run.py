@@ -28,7 +28,7 @@ def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, re
 		if sarsa:
 			trajectories.append(sar_to_sarsa(sar_traj))
 		else:
-			trajectories.append(sar_traj)
+			trajectories.append([[sarsa[0],sarsa[1],sarsa[2],sarsa[3],sarsa[5]] for sarsa in sar_to_sarsa(sar_traj)])
 	# return np.asarray(trajectories)
 	return trajectories
 

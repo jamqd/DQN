@@ -6,4 +6,4 @@ python ./main.py \
     --episodes 2 \
     --batch_size 16 \
     --use_ddqn true\
-    --n_threads 1 \
+    --n_threads 0 \

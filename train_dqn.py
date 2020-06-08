@@ -247,13 +247,8 @@ def train(
 
     env.close()
 
-<<<<<<< HEAD
 def log_evaluate(env, dqn, num_episodes, summary_writer, iteration):
     trajectories = collect_trajectories(env=env, episodes=num_episodes, dqn=dqn)
-=======
-def log_evaluate(env, dqn, num_episodes, summary_writer):
-    trajectories = collect_trajectories(env, num_episodes, sarsa=False, dqn)
->>>>>>> e0a17a1288f49641149119f79637eb98f14e746e
 
     # average reward per trajectory
     undiscounted_avg_reward = sum([sarsa[2] for traj in trajectories for sarsa in traj])/len(trajectories)

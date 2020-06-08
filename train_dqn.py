@@ -13,7 +13,7 @@ import datetime
 import qvalues
 import random
 
-def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
+def compute_loss(s, a, r, s_prime, done, dqn, discount_factor, dqn_prime=None):
     """
     param:
         s : (N, |S|)
@@ -28,12 +28,17 @@ def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     q = dqn.forward(s)[torch.arange(N), a.long()]
     if dqn_prime: # using ddqn and target network
         bootstrap = dqn_prime.forward(s_prime)[torch.arange(N), dqn.forward_best_actions(s_prime)[0]]
-        target = r + discount_factor * bootstrap
+        if done:
+            target = r
+        else:
+            target = r + discount_factor * bootstrap
     else:
         bootstrap = dqn.forward_best_actions(s_prime)[1]
-        target = r + discount_factor * bootstrap
-
-    target.detach() # do not propogate graidents through target
+        if done:
+            target = r
+        else:
+            target = r + discount_factor * bootstrap
+    target.detach() # do not propogate gradients through target
     return F.mse_loss(q, target)
 
 def train(
@@ -99,9 +104,12 @@ def train(
 
     if online:
         #initialize dataset
+        observation = env.reset()
         replay = []
-        observation, reward, done, info = env.step(env.action_space(action))
-        replay.append([observation, action, reward, observation])
+        action =  env.action_space.sample()
+        observation_, reward, done, info = env.step(action)
+        terminal = 1 if done else 0
+        replay.append([observation, action, reward, observation_, terminal])
         dataset = TrajectoryDataset(replay, max_replay_history=max_replay_history)
         dataloader = torch.utils.data.DataLoader(dataset,
                                                  batch_size=batch_size,
@@ -124,22 +132,16 @@ def train(
                 #carry out action, observe new reward and state
                 observation_, reward, done, info = env.step(action)
                 #store experience in replay memory
-                dataset.add([observation, action, reward, observation_])
+                terminal = 1 if done else 0
+                dataset.add([observation, action, reward, observation_, terminal])
                 #sample random transition from replay memory
                 trans = next(iter(dataloader))
-                #calculate target for each minibatch transition
-                target = None
-                if terminal: #???
-                    target_ = reward
-                else:
-                    target = reward + discount_factor*dqn.forward(trans[3], action)
-                #train / update gradient
                 dqn_prime = None
                 if use_ddqn:
                     print("Using DDQN")
                     dqn_prime = DQN(obs_space_dim, action_space_dim)
                 optimizer = optim.Adam(dqn.parameters())
-                loss = compute_loss(trans[0], trans[1], trans[2], trans[3], dqn, discount_factor, dqn_prime)
+                loss = compute_loss(trans[0], trans[1], trans[2], trans[3], trans[4], dqn, discount_factor, dqn_prime)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step() #does the gradient update, loss computed update

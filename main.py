@@ -27,9 +27,9 @@ def main():
     parser.add_argument('--iterations', dest='iterations', default=1000, help="number of training iterations", type=int)
     parser.add_argument('--episodes', dest='episodes', default=100, help = "number of episodes per iterations", type=int)
     parser.add_argument('--use_ddqn', dest='use_ddqn', default=False, help = "use ddqn instead of dqn", type=bool)
-    parser.add_argument('--batch_size', dest='batch_size', default=128, help = "batch size for gradient update", type=int)
+    parser.add_argument('--batch_size', dest='batch_size', default=32, help = "batch size for gradient update", type=int)
     parser.add_argument('--n_threads', dest='n_threads', default=1, help = "number of threads to use", type=int)
-    parser.add_argument('--max_replay', dest='max_replay', default=1000000, help = "how many transitions to store", type=int)
+    parser.add_argument('--max_replay', dest='max_replay', default=500000, help = "how many transitions to store", type=int)
     parser.add_argument('--epsilon', dest='epsilon', default=0.995, help = "epsilon to use in e greedy", type=float)
     args = parser.parse_args()
 

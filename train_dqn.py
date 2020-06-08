@@ -39,7 +39,7 @@ def compute_loss(s, a, r, s_prime, done, dqn, discount_factor, dqn_prime=None):
     return F.mse_loss(q, target.float())
 
 def train(
-    learning_rate=0.00025,
+    learning_rate=0.001,
     discount_factor=0.99,
     env_name="LunarLander-v2",
     iterations=50000000,
@@ -49,7 +49,7 @@ def train(
     n_threads=1,
     copy_params_every=100,
     save_model_every=100,
-    max_replay_history=1000000,
+    max_replay_history=500000,
     freq_report_log=5,
     online=False,
     epsilon=0.995,

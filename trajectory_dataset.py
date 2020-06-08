@@ -19,21 +19,16 @@ class TrajectoryDataset(Dataset):
         self.transitions = torch.Tensor()
         self.trajectories = []
         self.buffer = []
-
-        if online:
-            self.add_transition(trajectories)
-        else:
-            self.add(trajectories)
-
-        self.trajectory_avg_reward = [sum([sarsa[2] for sarsa in trajectory])/len(trajectory) for trajectory in trajectories]
-
+        self.original_trajectories = []
+        self.trajectory_avg_reward = []
         self.max_replay_history = max_replay_history
 
-        self.original_trajectories, self.trajectory_avg_reward = self.restructure_original(trajectories, self.trajectory_avg_reward)
 
-        if len(self.transitions) > self.max_replay_history:
-            self.transitions = self.transitions[len(self.transitions) - self.max_replay_history:]
-               
+        if online:
+            self.add_transition(init)
+        else:
+            self.add(init)
+
     def __len__(self):
         """
             param:

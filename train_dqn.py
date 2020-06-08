@@ -23,12 +23,14 @@ def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     return:
         a scalar value representing the loss
     """
-    q = torch.squeeze(dqn.forward(s, a))
+    N = len(s)
+    q = dqn.forward(s)[torch.arange(N), a.long()]
     if dqn_prime: # using ddqn and target network
-        bootstrap = dqn_prime.forward(s_prime, dqn.forward_best_actions(s_prime)[0])
+        bootstrap = dqn_prime.forward(s_prime)[torch.arange(N), dqn.forward_best_actions(s_prime)[0]]
         # if torch.cuda.is_available():
         #     target = r.cuda() + torch.squeeze(discount_factor * bootstrap)
         # else:
+        print(bootstrap,shape)
         target = r + torch.squeeze(discount_factor * bootstrap)
     else:
         bootstrap = dqn.forward_best_actions(s_prime)[1]
@@ -112,11 +114,24 @@ def train(
         
         # fitted Q-iteration
         for sarsa in dataloader:
+            N = len(sarsa)
+
             s = sarsa[:, :obs_space_dim]
+            s = torch.reshape(s, (N, obs_space_dim))
+
             a = sarsa[:, obs_space_dim:obs_space_dim + 1]
+            a = torch.reshape(a, (N,))
+            
             r = sarsa[:, obs_space_dim + 1 : obs_space_dim + 1 + 1]
+            r = torch.reshape(r, (N,))
+
             s_prime = sarsa[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
+            s_prime = torch.reshape(s_prime, (N, obs_space_dim))
+
             a_prime = sarsa[:, obs_space_dim + 1 + 1 + obs_space_dim:]
+            a_prime = torch.reshape(a_prime, (N,))
+
+
             
             if torch.cuda.is_available():
                 s = s.cuda()
@@ -124,14 +139,7 @@ def train(
                 r = r.cuda()
                 s_prime = s_prime.cuda()
 
-            try:
-                loss = compute_loss(s, a.squeeze() if a.squeeze().dim() != 0 else torch.tensor([a.squeeze()]), r.squeeze(), s_prime, dqn, discount_factor, dqn_prime)
-            except Exception as e:
-                print(e)
-                print(s, s.shape, s.squeeze(), s.squeeze().shape)
-                print(a, a.shape, a.squeeze(), a.squeeze().shape)
-                print(r, r.shape, r.squeeze(), r.squeeze().shape)
-                print(s_prime, s_prime.shape, s_prime.squeeze(), s_prime.squeeze().shape)
+            loss = compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
 
             optimizer.zero_grad()
             loss.backward()

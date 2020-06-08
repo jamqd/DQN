@@ -17,8 +17,7 @@ class TestDataset:
 
 def main():
     data = TestDataset([1,2,3])
-    dataloaded = DataLoader(data)
-    dataloaded = RandomSampler(data)
+    dataloaded = DataLoader(data, sampler=RandomSampler(data))
     print(len(dataloaded))
     for blah in dataloaded:
         print(blah)

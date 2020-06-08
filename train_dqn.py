@@ -170,13 +170,10 @@ def train(
             if i_episode % freq_report_log == 0:
                 start_time = datetime.datetime.now()
                 log_evaluate(env, dqn, eval_episodes, summary_writer)
-                print("Time to compute avgreward and qdiff {}".format(
-                    (datetime.datetime.now() - start_time).total_seconds()))
-
+                print("Time to compute avgreward and qdiff {}".format((datetime.datetime.now() - start_time).total_seconds()))
             if i_episode % save_model_every == 0:
-                torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-", "_").replace(" ",
-                                                                                                     "_").replace(
-                    ":", ".") + ".pt")
+                torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-", "_").replace(" ","_").replace(":", ".") + ".pt")
+
         env.close()
         return
 

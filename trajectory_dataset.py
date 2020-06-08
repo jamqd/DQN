@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 import numpy as np
 import torch
+from collections.abc import Iterable
 
 # I'm assuming we're using a dataloader to sample the data and perform gradient descent on it
 # so this code is unbelievably simple. 
@@ -15,35 +16,30 @@ class TrajectoryDataset(Dataset):
                 max_replay_history: int indicating the max number of transitions (sarsa tuples) to store
         """
         # self.transitions = np.array([transition for trajectory in trajectories for transition in trajectory], dtype=float)
-        
-        self.transitions = []
+          
+        dim = sum([len(i) if isinstance(i, Iterable) else 1 for i in trajectories[0][0]])
+        self.transitions = torch.zeros([sum([len(traj) for traj in trajectories]), dim], dtype=torch.float64)
+        if torch.cuda.is_available():
+            self.transitions = self.transitions.cuda()
 
+        idx = 0
         for trajectory in trajectories:
             for transition in trajectory:
-                # print(len(transition[0]))
-                # print(len(transition[1]))
-                # print(len(transition[2]))
-                # print(len(transition[3]))
-                # print(len(transition[4]))
                 s = transition[0]
                 a = transition[1]
                 r = transition[2]
                 s_prime = transition[3]
                 a_prime = transition[4]
-                # print(s)
-                # print(a)
-                # print(r)
-                # print(s_prime)
-                # print(a_prime)
+                
+                if torch.cuda.is_available():
+                    trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[a_prime]))).cuda()
+                else:
+                    trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[a_prime])))
 
-
-                test = np.concatenate((s,[a],[r],s_prime,[a_prime]))
-                # print(test.shape)
-                self.transitions.append(test)
+                self.transitions[idx] = trans_tensor
+                idx+=1
 
         self.trajectory_avg_reward = [sum([sarsa[2] for sarsa in trajectory])/len(trajectory) for trajectory in trajectories]
-
-        self.transitions = np.array(self.transitions)
 
         self.max_replay_history = max_replay_history
 
@@ -76,7 +72,12 @@ class TrajectoryDataset(Dataset):
                 trajectories: list of trajectories. assumes each trajectory is a list of sarsa tuples 
             return:
         """
-        new_transitions = []
+        dim = sum([len(i) if isinstance(i, Iterable) else 1 for i in trajectories[0][0]])
+        new_transitions = torch.zeros([sum([len(traj) for traj in trajectories]), dim], dtype=torch.float64)
+        if torch.cuda.is_available():
+            new_transitions = new_transitions.cuda()
+
+        idx = 0
         for trajectory in trajectories:
             for transition in trajectory:
                 s = transition[0]
@@ -84,16 +85,22 @@ class TrajectoryDataset(Dataset):
                 r = transition[2]
                 s_prime = transition[3]
                 a_prime = transition[4]
-                new_transitions.append(np.concatenate((s,[a],[r],s_prime,[a_prime])))
+                
+                if torch.cuda.is_available():
+                    trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[a_prime]))).cuda()
+                else:
+                    trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[a_prime])))
 
-        new_transitions = np.array(new_transitions)
+                new_transitions[idx] = trans_tensor
+                idx+=1
+
         if len(new_transitions) >= self.max_replay_history:
             self.transitions = new_transitions[len(new_transitions) - self.max_replay_history:]
         elif len(new_transitions) + len(self.transitions) >= self.max_replay_history:
             old_start_index = (len(self.transitions) + len(new_transitions)) - self.max_replay_history
-            self.transitions = np.concatenate((self.transitions[old_start_index:],new_transitions))
+            self.transitions = torch.cat((self.transitions[old_start_index:],new_transitions))
         else:
-            self.transitions = np.concatenate((self.transitions, new_transitions))
+            self.transitions = torch.cat((self.transitions, new_transitions))
 
         # self.trajectory_avg_reward = self.trajectory_avg_reward + [sum([sarsa[2] for sarsa in trajectory])/len(trajectory) for trajectory in trajectories]
         self.trajectory_avg_reward = self.trajectory_avg_reward + [sum([sarsa[2] for sarsa in trajectory]) for trajectory in trajectories]

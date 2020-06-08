@@ -24,18 +24,14 @@ def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     return:
         a scalar value representing the loss
     """
-    q = torch.squeeze(dqn.forward(s, a))
+    N = len(s)
+    q = dqn.forward(s)[torch.arange(N), a.long()]
     if dqn_prime: # using ddqn and target network
-        bootstrap = dqn_prime.forward(s_prime, dqn.forward_best_actions(s_prime)[0])
-        # if torch.cuda.is_available():
-        #     target = r.cuda() + torch.squeeze(discount_factor * bootstrap)
-        # else:
-        target = r + torch.squeeze(discount_factor * bootstrap)
+        bootstrap = dqn_prime.forward(s_prime)[torch.arange(N), dqn.forward_best_actions(s_prime)[0]]
+        target = r + discount_factor * bootstrap
     else:
         bootstrap = dqn.forward_best_actions(s_prime)[1]
-        # if torch.cuda.is_available():
-        #     target = r.cuda() + torch.squeeze(discount_factor * bootstrap[0])\
-        target = r + torch.squeeze(discount_factor * bootstrap[0])
+        target = r + discount_factor * bootstrap
 
     target.detach() # do not propogate graidents through target
     return F.mse_loss(q, target)
@@ -64,6 +60,20 @@ def train(
         None
 
     """
+
+    print("Using learning_rate={}".format(learning_rate))
+    print("Using discount_factor={}".format(discount_factor))
+    print("Using env_name={}".format(env_name))
+    print("Using iterations={}".format(iterations))
+    print("Using episodes_per_iteration={}".format(episodes_per_iteration))
+    print("Using use_ddqn={}".format(use_ddqn))
+    print("Using batch_size={}".format(batch_size))
+    print("Using n_threads={}".format(n_threads))
+    print("Using copy_params_every={}".format(copy_params_every))
+    print("Using save_model_every={}".format(save_model_every))
+    print("Using max_replay_history={}".format(max_replay_history))
+    print("Using freq_report_log={}".format(freq_report_log))
+    print("Using epsilon={}".format(epsilon))
 
     if not os.path.isdir("./models/"):
         os.mkdir("./models/")
@@ -107,11 +117,11 @@ def train(
                 #sample random transition from replay memory
                 trans = random.choice(replay)
                 #calculate target for each minibatch transition
-                    target = None
-                    if trans[4] is True:
-                        target_ = reward
-                    else:
-                        target = reward + discount_factor*dqn.forward(trans[3], action)
+                target = None
+                if trans[4] is True:
+                    target_ = reward
+                else:
+                    target = reward + discount_factor*dqn.forward(trans[3], action)
                 #train / update gradient
                 dqn_prime = None
                 if use_ddqn:
@@ -179,40 +189,36 @@ def train(
         
         # fitted Q-iteration
         sarsa = next(iter(dataloader))
-        if True:
-            s = sarsa[:, :obs_space_dim]
-            a = sarsa[:, obs_space_dim:obs_space_dim + 1]
-            r = sarsa[:, obs_space_dim + 1 : obs_space_dim + 1 + 1]
-            s_prime = sarsa[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
-            a_prime = sarsa[:, obs_space_dim + 1 + 1 + obs_space_dim:]
 
-            torch.reshape(s, (batch_size, obs_space_dim))
-            torch.reshape(a, (batch_size, 1))
-            torch.reshape(r, (batch_size, 1))
-            torch.reshape(s_prime, (batch_size, obs_space_dim))
-            torch.reshape(a_prime, (batch_size, 1))
+        N = len(sarsa)
+        s = sarsa[:, :obs_space_dim]
+        s = torch.reshape(s, (N, obs_space_dim))
 
-            print(f"sarsa {sarsa.shape} {s.shape} {a.shape} {r.shape} {s_prime.shape}")
+        a = sarsa[:, obs_space_dim:obs_space_dim + 1]
+        a = torch.reshape(a, (N,))
+        
+        r = sarsa[:, obs_space_dim + 1 : obs_space_dim + 1 + 1]
+        r = torch.reshape(r, (N,))
 
-            if torch.cuda.is_available():
-                s = s.cuda()
-                a = a.cuda()
-                r = r.cuda()
-                s_prime = s_prime.cuda()
+        s_prime = sarsa[:, obs_space_dim + 1 + 1: obs_space_dim + 1 + 1 + obs_space_dim]
+        s_prime = torch.reshape(s_prime, (N, obs_space_dim))
 
+        a_prime = sarsa[:, obs_space_dim + 1 + 1 + obs_space_dim:]
+        a_prime = torch.reshape(a_prime, (N,))
 
-            try:
-                loss = compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
-            except Exception as e:
-                print(e)
-                print(s, s.shape, s.squeeze(), s.squeeze().shape)
-                print(a, a.shape, a.squeeze(), a.squeeze().shape)
-                print(r, r.shape, r.squeeze(), r.squeeze().shape)
-                print(s_prime, s_prime.shape, s_prime.squeeze(), s_prime.squeeze().shape)
+        print(f"sarsa {sarsa.shape} {s.shape} {a.shape} {r.shape} {s_prime.shape}")
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step() #does the gradient update, loss computed update
+        if torch.cuda.is_available():
+            s = s.cuda()
+            a = a.cuda()
+            r = r.cuda()
+            s_prime = s_prime.cuda()
+
+        loss = compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
         if i % freq_report_log == 0:
             start_time = datetime.datetime.now()
@@ -247,10 +253,11 @@ def train(
 def q_diff(dqn, trajectories):
     s = [sarsa[0] for traj in trajectories for sarsa in traj]
     a = [sarsa[1] for traj in trajectories for sarsa in traj]
+    N = len(s)
     if torch.cuda.is_available():
-        q = dqn.forward(s, a).squeeze().detach().cpu().numpy()
+        q = dqn.forward(s).detach().cpu().numpy()[np.arange(N), a]
     else:
-        q = dqn.forward(s, a).squeeze().detach().numpy()
+        q = dqn.forward(s).detach().numpy()[np.arange(N), a]
     q_empirical = qvalues.cumulative_discounted_rewards(trajectories)
     q_empirical = np.concatenate([q_t for q_t in q_empirical])
     diff = q - q_empirical

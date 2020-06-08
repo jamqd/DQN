@@ -1,5 +1,5 @@
 python ./main.py \
-    --learning_rate 0.001 \
+    --learning_rate 0.1 \
     --discount_factor 0.99 \
     --env_name LunarLander-v2 \
     --iterations 50000 \

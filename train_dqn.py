@@ -51,7 +51,8 @@ def train(
     copy_params_every=100,
     save_model_every=100,
     max_replay_history=1000000,
-    freq_report_log=5
+    freq_report_log=5,
+    epsilon=0.99
 ):
     """
     param:
@@ -177,7 +178,7 @@ def train(
             torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-","_").replace(" ","_").replace(":",".") + ".pt")
         
         # collect trajectories
-        trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn, epsilon=np.power(0.99, i))
+        trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn, epsilon=np.power(epsilon, i))
         dataset.add(trajectories)
         # dataloader = torch.utils.data.DataLoader(dataset,
         #     batch_size=batch_size,

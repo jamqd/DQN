@@ -9,36 +9,21 @@ from collections.abc import Iterable
 
 
 class TrajectoryDataset(Dataset):
-    def __init__(self, trajectories, max_replay_history):
+    def __init__(self, init, max_replay_history, online = True):
         """
             param:
                 trajectories: list of trajectories. assumes each trajectory is a list of sarsa tuples 
                 max_replay_history: int indicating the max number of transitions (sarsa tuples) to store
         """
         # self.transitions = np.array([transition for trajectory in trajectories for transition in trajectory], dtype=float)
-          
-        dim = sum([len(i) if isinstance(i, Iterable) else 1 for i in trajectories[0][0]])
-        self.transitions = torch.zeros([sum([len(traj) for traj in trajectories]), dim], dtype=torch.float64)
-        if torch.cuda.is_available():
-            self.transitions = self.transitions.cuda()
+        self.transitions = torch.Tensor()
+        self.trajectories = []
+        self.buffer = []
 
-        idx = 0
-        for trajectory in trajectories:
-            for transition in trajectory:
-                s = transition[0]
-                a = transition[1]
-                r = transition[2]
-                s_prime = transition[3]
-                a_prime = transition[4]
-                done = transition[5]
-                
-                if torch.cuda.is_available():
-                    trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[a_prime],[done]))).cuda()
-                else:
-                    trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[a_prime],[done])))
-
-                self.transitions[idx] = trans_tensor
-                idx+=1
+        if online:
+            self.add_transition(trajectories)
+        else:
+            self.add(trajectories)
 
         self.trajectory_avg_reward = [sum([sarsa[2] for sarsa in trajectory])/len(trajectory) for trajectory in trajectories]
 
@@ -85,13 +70,12 @@ class TrajectoryDataset(Dataset):
                 a = transition[1]
                 r = transition[2]
                 s_prime = transition[3]
-                a_prime = transition[4]
-                done = transition[5]
+                done = transition[4]
                 
                 if torch.cuda.is_available():
-                    trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[a_prime],[done]))).cuda()
+                    trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[done]))).cuda()
                 else:
-                    trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[a_prime],[done])))
+                    trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[done])))
 
                 new_transitions[idx] = trans_tensor
                 idx+=1
@@ -103,7 +87,14 @@ class TrajectoryDataset(Dataset):
             self.transitions = torch.cat((self.transitions[old_start_index:],new_transitions))
         else:
             self.transitions = torch.cat((self.transitions, new_transitions))
+        self.add_trajectories(trajectories)
 
+    def add_trajectories(self, trajectories):
+        """
+            param:
+                trajectories: list of trajectories. assumes each trajectory is a list of sarsa tuples 
+            return:
+        """
         # self.trajectory_avg_reward = self.trajectory_avg_reward + [sum([sarsa[2] for sarsa in trajectory])/len(trajectory) for trajectory in trajectories]
         self.trajectory_avg_reward = self.trajectory_avg_reward + [sum([sarsa[2] for sarsa in trajectory]) for trajectory in trajectories]
         self.original_trajectories, self.trajectory_avg_reward = self.restructure_original(self.original_trajectories + trajectories, self.trajectory_avg_reward)
@@ -143,6 +134,31 @@ class TrajectoryDataset(Dataset):
         """
         return self.original_trajectories, self.trajectory_avg_reward
 
+    def add_transition(self, transition):
+        """
+            param:
+                trans: transition to be added to transitions
+        """
+        self.buffer.append(transition)
+        s = transition[0]
+        a = transition[1]
+        r = transition[2]
+        s_prime = transition[3]
+        done = transition[4]
+        
+        if torch.cuda.is_available():
+            trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[done]))).cuda()
+        else:
+            trans_tensor = torch.Tensor(np.concatenate((s,[a],[r],s_prime,[done])))
+
+        if self.transitions.size == torch.Size([0]):
+            self.transitions = trans_tensor.reshape((1,len(trans_tensor)))
+        else:
+            self.transitions = torch.cat((self.transitions, trans_tensor))
+
+    def flush(self):
+        self.add_trajectories(self.buffer)
+        self.buffer = []
 
 #         Traceback (most recent call last):
 #   File "./main.py", line 48, in <module>

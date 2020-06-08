@@ -55,7 +55,8 @@ def train(
     epsilon=0.995,
     render=False,
     eval_episodes=16,
-    gd_optimizer="RMSprop"
+    gd_optimizer="RMSprop",
+    num_episodes=1000
 ):
     """
     param:
@@ -119,6 +120,7 @@ def train(
     else:
         optimizer = optim.RMSprop(dqn.parameters(), lr=learning_rate)
 
+    summary_writer = SummaryWriter()
 
     # gradient step every time a transition is collected
     if online:
@@ -137,7 +139,7 @@ def train(
                                                  sampler=torch.utils.data.RandomSampler(dataset),
                                                  )
         # go through episodes
-        for i_episode in range(episodes_per_iteration):
+        for i_episode in range(num_episodes):
             observation = env.reset()
             t = 0
             while True:  # repeat
@@ -155,11 +157,6 @@ def train(
                 dataset.add([observation, action, reward, observation_, terminal])
                 # sample random transition from replay memory
                 trans = next(iter(dataloader))
-                dqn_prime = None
-                if use_ddqn:
-                    print("Using DDQN")
-                    dqn_prime = DQN(obs_space_dim, action_space_dim)
-                optimizer = optim.Adam(dqn.parameters())
                 loss = compute_loss(trans[0], trans[1], trans[2], trans[3], trans[4], dqn, discount_factor, dqn_prime)
                 optimizer.zero_grad()
                 loss.backward()
@@ -168,14 +165,23 @@ def train(
                 observation = observation_
                 if done:
                     break
+
+            # log evaluation metrics
+            if i_episode % freq_report_log == 0:
+                start_time = datetime.datetime.now()
+                log_evaluate(env, dqn, eval_episodes, summary_writer)
+                print("Time to compute avgreward and qdiff {}".format(
+                    (datetime.datetime.now() - start_time).total_seconds()))
+
+            if i_episode % save_model_every == 0:
+                torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-", "_").replace(" ",
+                                                                                                     "_").replace(
+                    ":", ".") + ".pt")
         env.close()
         return
 
-
-    # collect multiple trajectories every iteration
-
     # collect trajectories with random policy
-    init_trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn)
+    init_trajectories = collect_trajectories(env, episodes_per_iteration, sarsa=False, dqn=dqn)
     dataset = TrajectoryDataset(init_trajectories, max_replay_history=max_replay_history)
     dataloader = torch.utils.data.DataLoader(dataset,
         batch_size=batch_size,
@@ -183,8 +189,6 @@ def train(
         sampler=torch.utils.data.RandomSampler(dataset),
         )
 
-
-    summary_writer = SummaryWriter()
     for i in range(iterations):
         if torch.cuda.is_available():
             print("Iteration {}, Transitions {}, MemAlloc {}".format(i, len(dataset), torch.cuda.memory_allocated()))
@@ -227,7 +231,7 @@ def train(
 
         
         # collect trajectories
-        trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn, epsilon=np.power(epsilon, i))
+        trajectories = collect_trajectories(env, episodes_per_iteration, sarsa=False, dqn=dqn, epsilon=np.power(epsilon, i))
         dataset.add(trajectories)
 
 
@@ -243,8 +247,13 @@ def train(
 
     env.close()
 
+<<<<<<< HEAD
 def log_evaluate(env, dqn, num_episodes, summary_writer, iteration):
     trajectories = collect_trajectories(env=env, episodes=num_episodes, dqn=dqn)
+=======
+def log_evaluate(env, dqn, num_episodes, summary_writer):
+    trajectories = collect_trajectories(env, num_episodes, sarsa=False, dqn)
+>>>>>>> e0a17a1288f49641149119f79637eb98f14e746e
 
     # average reward per trajectory
     undiscounted_avg_reward = sum([sarsa[2] for traj in trajectories for sarsa in traj])/len(trajectories)

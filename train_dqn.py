@@ -113,6 +113,23 @@ def train(
                     else:
                         target = reward + discount_factor*dqn.forward(trans[3], action)
                 #train / update gradient
+                dqn_prime = None
+                if use_ddqn:
+                    print("Using DDQN")
+                    dqn_prime = DQN(obs_space_dim, action_space_dim)
+                optimizer = optim.Adam(dqn.parameters())
+                try:
+                    loss = compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime)
+                except Exception as e:
+                    print(e)
+                    print(s, s.shape, s.squeeze(), s.squeeze().shape)
+                    print(a, a.shape, a.squeeze(), a.squeeze().shape)
+                    print(r, r.shape, r.squeeze(), r.squeeze().shape)
+                    print(s_prime, s_prime.shape, s_prime.squeeze(), s_prime.squeeze().shape)
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step() #does the gradient update, loss computed update
 
                 #change current state
                 observation = observation_

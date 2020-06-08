@@ -11,6 +11,7 @@ from run import collect_trajectories
 import os
 import datetime
 import qvalues
+import random
 
 def compute_loss(s, a, r, s_prime, dqn, discount_factor, dqn_prime=None):
     """
@@ -51,7 +52,8 @@ def train(
     copy_params_every=100,
     save_model_every=100,
     max_replay_history=1000000,
-    freq_report_log=5
+    freq_report_log=5,
+    online=False
 ):
     """
     param:
@@ -82,6 +84,43 @@ def train(
     if torch.cuda.is_available():
         print("DQN on GPU")
         dqn = dqn.cuda()
+
+    if online:
+        #go through episodes
+        for i_episode in range(episodes_per_iteration):
+            observation = env.reset()
+            t = 0
+            replay = []
+            while True: #repeat
+                if render:
+                    env.render()
+                #selecting an action
+                if dqn and random.random() > 0.1:
+                    action = torch.squeeze(dqn.forward_best_actions([observation])[0]).item()
+                else:
+                    action = env.action_space.sample()  # random sample of action space
+                #carry out action, observe new reward and state
+                observation_, reward, done, info = env.step(action)
+                #store experience in replay memory
+                replay.append([observation, action, reward, observation_, done])
+                #sample random transition from replay memory
+                trans = random.choice(replay)
+                #calculate target for each minibatch transition
+                    target = None
+                    if trans[4] is True:
+                        target_ = reward
+                    else:
+                        target = reward + discount_factor*dqn.forward(trans[3], action)
+                #train / update gradient
+
+                #change current state
+                observation = observation_
+                if done:
+                    break
+        env.close()
+        return
+
+
 
     # collect trajectories with random policy
     init_trajectories = collect_trajectories(env, episodes_per_iteration, dqn=dqn)
@@ -124,7 +163,7 @@ def train(
                 r = r.cuda()
                 s_prime = s_prime.cuda()
 
-            try:
+            try: #computing the loss
                 loss = compute_loss(s, a.squeeze() if a.squeeze().dim() != 0 else torch.tensor([a.squeeze()]), r.squeeze(), s_prime, dqn, discount_factor, dqn_prime)
             except Exception as e:
                 print(e)
@@ -135,7 +174,7 @@ def train(
 
             optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
+            optimizer.step() #does the gradient update, loss computed update
 
         if i % freq_report_log == 0:
             start_time = datetime.datetime.now()

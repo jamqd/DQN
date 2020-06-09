@@ -70,16 +70,24 @@ def train(
     for param in params:
         print(f"Using {param}={params[param]}")
 
+    ident_string = datetime.datetime.now().strftime("%Y_%m_%d_%H.%M.%S.%f")
+
     if not os.path.isdir("./models/"):
         os.mkdir("./models/")
 
+    if not os.path.isdir("./meta_text/"):
+        os.mkdir("./meta_text/")
+
+    with open(f"./meta_text/{ident_string}.txt", "w+") as text_file:
+        for param in params:
+            text_file.write(f"{param}={params[param]}\n")
+ 
     env = gym.make(env_name)
     if not isinstance(env.action_space, gym.spaces.discrete.Discrete):
         print("Action space for env {} is not discrete".formt(env_name))
         raise ValueError
 
     print("Using env: {}".format(env_name))
-
     action_space_dim = env.action_space.n
     obs_space_dim = np.prod(env.observation_space.shape)
     print("Action space dimension: {}".format(action_space_dim))
@@ -106,7 +114,7 @@ def train(
     else:
         optimizer = optim.RMSprop(dqn.parameters(), lr=learning_rate)
 
-    summary_writer = SummaryWriter()
+    summary_writer = SummaryWriter(log_dir=f'./runs/{ident_string}')
 
     # gradient step every time a transition is collected
     if online:
@@ -167,7 +175,7 @@ def train(
                 log_evaluate(env, dqn, eval_episodes, summary_writer, i_episode)
                 print("Time to compute avgreward and qdiff {}".format((datetime.datetime.now() - start_time).total_seconds()))
             if i_episode % save_model_every == 0:
-                torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-", "_").replace(" ","_").replace(":", ".") + ".pt")
+                torch.save(dqn, f"./models/{ident_string}_{i_episode//save_model_every}.pt")
 
         env.close()
         return
@@ -206,11 +214,9 @@ def train(
         loss.backward()
         optimizer.step()
 
-        
         # collect trajectories
         trajectories = collect_trajectories(env, episodes_per_iteration, sarsa=False, dqn=dqn, epsilon=np.power(epsilon, i))
         dataset.add(trajectories)
-
 
         # log evaluation metrics
         if i % freq_report_log == 0:

@@ -42,7 +42,7 @@ def main():
     parser.add_argument('--eval_episodes', dest='eval_episodes', default=16, help = "number of episodes to eval", type=int)
     parser.add_argument('--gd_optimizer', dest='gd_optimizer', default="RMSprop", help = "what optimizer to use", type=str)
     parser.add_argument('--num_episodes', dest='num_episodes', default=50000, help = "number of episodes to perform", type=int)
-    args = parser.argparse()
+    args = parser.parse_args()
 
     train(
         learning_rate=args.learning_rate,

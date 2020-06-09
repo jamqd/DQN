@@ -256,7 +256,6 @@ def log_evaluate(env, dqn, num_episodes, summary_writer, iteration):
 
     # average reward per trajectory
     undiscounted_avg_reward = sum([sarsa[2] for traj in trajectories for sarsa in traj])/len(trajectories)
-    print(undiscounted_avg_reward)
     summary_writer.add_scalar("AvgReward", undiscounted_avg_reward, iteration) 
 
     # average difference between empirical q and q from network

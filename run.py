@@ -10,6 +10,7 @@ def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, re
 		observation = env.reset()
 		t = 0
 		sar_traj = []
+		total = 0
 		while timesteps == None or t < timesteps:
 			if render:
 				env.render()
@@ -18,7 +19,8 @@ def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, re
 			else: 
 				action = env.action_space.sample()  # random sample of action space
 			observation, reward, done, info = env.step(action)
-			print(reward)
+			total += reward
+			# print(reward)
 			terminal = 1 if done else 0
 			sar_traj.append([observation, action, reward, terminal])
 			if done:

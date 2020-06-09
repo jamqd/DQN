@@ -30,6 +30,7 @@ class TrajectoryDataset(Dataset):
 
         if online:
             self.add_transition(init)
+            self.flush()
         else:
             self.add(init)
 
@@ -80,10 +81,10 @@ class TrajectoryDataset(Dataset):
                 idx+=1
 
         if len(new_transitions) >= self.max_replay_history:
-            self.transitions = new_transitions[len(new_transitions) - self.max_replay_history:]
+            self.transitions = new_transitions[len(new_transitions.float()) - self.max_replay_history:].float()
         elif len(new_transitions) + len(self.transitions) >= self.max_replay_history:
-            old_start_index = (len(self.transitions) + len(new_transitions)) - self.max_replay_history
-            self.transitions = torch.cat((self.transitions[old_start_index:],new_transitions))
+            old_start_index = (len(self.transitions.float()) + len(new_transitions.float())) - self.max_replay_history
+            self.transitions = torch.cat((self.transitions[old_start_index:].float(),new_transitions.float()))
         else:
             self.transitions = torch.cat((self.transitions.float(), new_transitions.float()))
         self.add_trajectories(trajectories)
@@ -146,17 +147,18 @@ class TrajectoryDataset(Dataset):
         done = transition[4]
         
         if torch.cuda.is_available():
-            trans_tensor = torch.Tensor(s + [a] + [r] + s_prime +[done]).cuda()
+            trans_tensor = torch.Tensor([*s,a,r,*s_prime,done]).cuda()
         else:
-            trans_tensor = torch.Tensor(s + [a] + [r] + s_prime +[done])
+            trans_tensor = torch.Tensor([*s,a,r,*s_prime,done])    
 
-        if self.transitions.size == torch.Size([0]):
-            self.transitions = trans_tensor.reshape((1,len(trans_tensor)))
+        if self.transitions.size() == torch.Size([0]):
+            self.transitions = trans_tensor.reshape([1,len(trans_tensor)])
         else:
-            self.transitions = torch.cat((self.transitions, trans_tensor))
+            self.transitions = torch.cat((self.transitions, trans_tensor.reshape([1,len(trans_tensor)])))
+        
 
     def flush(self):
-        self.add_trajectories(self.buffer)
+        self.add_trajectories([self.buffer])
         self.buffer = []
 
 #         Traceback (most recent call last):

@@ -24,7 +24,6 @@ def collect_trajectories(env, episodes, timesteps=None, sarsa=True, dqn=None, re
 			terminal = 1 if done else 0
 			sar_traj.append([observation, action, reward, terminal])
 			if done:
-				print("done")
 				if verbose:
 					print("Episode finished after {} timesteps".format(t + 1))
 				break

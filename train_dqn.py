@@ -42,7 +42,7 @@ def train(
     learning_rate=0.001,
     discount_factor=0.99,
     env_name="LunarLander-v2",
-    iterations=50000000,
+    iterations=50000,
     episodes_per_iteration=100,
     use_ddqn=False,
     batch_size=32,
@@ -51,12 +51,12 @@ def train(
     save_model_every=100,
     max_replay_history=500000,
     freq_report_log=5,
-    online=False,
+    online=True,
     epsilon=0.995,
     render=False,
     eval_episodes=16,
     gd_optimizer="RMSprop",
-    num_episodes=1000
+    num_episodes=50000,
 ):
     """
     param:
@@ -66,23 +66,8 @@ def train(
         None
 
     """
-
-    print("Using learning_rate={}".format(learning_rate))
-    print("Using discount_factor={}".format(discount_factor))
-    print("Using env_name={}".format(env_name))
-    print("Using iterations={}".format(iterations))
-    print("Using episodes_per_iteration={}".format(episodes_per_iteration))
-    print("Using use_ddqn={}".format(use_ddqn))
-    print("Using batch_size={}".format(batch_size))
-    print("Using n_threads={}".format(n_threads))
-    print("Using copy_params_every={}".format(copy_params_every))
-    print("Using save_model_every={}".format(save_model_every))
-    print("Using max_replay_history={}".format(max_replay_history))
-    print("Using freq_report_log={}".format(freq_report_log))
-    print("Using online={}".format(online))
-    print("Using epsilon={}".format(epsilon))
-    print("Using eval_episodes={}".format(eval_episodes))
-    print("Using gd_optimizer={}".format(gd_optimizer))
+    for param in locals().keys():
+        print(f"Using {param}={locals()[param]}")
 
     if not os.path.isdir("./models/"):
         os.mkdir("./models/")
@@ -137,6 +122,8 @@ def train(
                                                  num_workers=n_threads,
                                                  sampler=torch.utils.data.RandomSampler(dataset),
                                                  )
+        dataset.add_transition(replay)
+        dataset.flush()
         # go through episodes
         for i_episode in range(num_episodes):
             observation = env.reset()
@@ -153,15 +140,10 @@ def train(
                 observation_, reward, done, info = env.step(action)
                 # store experience in replay memory
                 terminal = 1 if done else 0
-                dataset.add([observation, action, reward, observation_, terminal])
+                dataset.add_transition([observation, action, reward, observation_, terminal])
                 # sample random transition from replay memory
-<<<<<<< HEAD
-                trans = next(iter(dataloader))
-                s, a, r, s_prime, done = unpack_dataloader_sarsd(sarsd, obs_space_dim)
-=======
                 sarsd = next(iter(dataloader))
-                s, a, r, s_prime, done = unpack_dataloader_sarsd(sarsd)
->>>>>>> 3c534a437b85fe0805edf051b3c8dfd3ac26b534
+                s, a, r, s_prime, done = unpack_dataloader_sarsd(sarsd, obs_space_dim)
                 if torch.cuda.is_available():
                     s = s.cuda()
                     a = a.cuda()
@@ -174,13 +156,14 @@ def train(
                 optimizer.step()  # does the gradient update, loss computed update
                 # change current state
                 observation = observation_
-                if done:
+                if terminal:
                     break
+            dataset.flush()
 
             # log evaluation metrics
             if i_episode % freq_report_log == 0:
                 start_time = datetime.datetime.now()
-                log_evaluate(env, dqn, eval_episodes, summary_writer)
+                log_evaluate(env, dqn, eval_episodes, summary_writer, i_episode)
                 print("Time to compute avgreward and qdiff {}".format((datetime.datetime.now() - start_time).total_seconds()))
             if i_episode % save_model_every == 0:
                 torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-", "_").replace(" ","_").replace(":", ".") + ".pt")

@@ -133,3 +133,6 @@ runs/*
 models/*
 
 .vscode/
+
+./brokededstuff
+./brokededstuff/*

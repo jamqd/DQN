@@ -6,5 +6,5 @@ python ./main.py \
     --episodes 64 \
     --batch_size 32 \
     --n_threads 0 \
-    --max_replay 100000 \
+    --max_replay 4 \
     --epsilon 0.9

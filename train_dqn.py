@@ -75,6 +75,7 @@ def train(
 
     if not os.path.isdir("./models/"):
         os.mkdir("./models/")
+    os.mkdir("./models/{}/".format(ident_string))
 
     if not os.path.isdir("./meta_text/"):
         os.mkdir("./meta_text/")
@@ -181,7 +182,7 @@ def train(
                 log_evaluate(env, dqn, eval_episodes, summary_writer, i_episode)
                 print("Time to compute avgreward and qdiff {}".format((datetime.datetime.now() - start_time).total_seconds()))
             if i_episode % save_model_every == 0:
-                torch.save(dqn, f"./models/{ident_string}_{i_episode//save_model_every}.pt")
+                torch.save(dqn, "./models/{}/dqn_{}.pt".format(ident_string, i_episode))
 
         env.close()
         return
@@ -233,7 +234,7 @@ def train(
             print("Time to compute avgreward and qdiff {}".format((datetime.datetime.now() - start_time).total_seconds()))
 
         if i% save_model_every == 0:
-            torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-","_").replace(" ","_").replace(":",".") + ".pt")
+            torch.save(dqn, "./models/{}/dqn_{}.pt".format(ident_string, i))
 
     env.close()
 

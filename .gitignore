@@ -134,8 +134,8 @@ models/*
 
 .vscode/
 
-./brokededstuff
-./brokededstuff/*
+brokededstuff
+brokededstuff/*
 
-./meta_text
-./meta_text/*
+meta_text
+meta_text/*

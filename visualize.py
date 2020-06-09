@@ -14,7 +14,7 @@ def main():
 
     # dqn = DQN(args.state_dim, args.obs_dim)
     model = load(args.model_name)
-    collect_trajectories(gym.make("LunarLander-v2"),100, render=True)
+    collect_trajectories(gym.make("LunarLander-v2"), dqn=model, episodes=100, render=True)
 
 
 if __name__ == "__main__":

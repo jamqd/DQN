@@ -24,6 +24,9 @@ def compute_loss(s, a, r, s_prime, done, dqn, discount_factor, dqn_prime=None):
     return:
         a scalar value representing the loss
     """
+    # if max(r) > 90:
+    #     print("Big R: {}".format(max(r)))
+
     N = len(s)
     q = dqn.forward(s)[torch.arange(N), a.long()]
     if dqn_prime: # using ddqn and target network
@@ -140,8 +143,9 @@ def train(
 
         # go through episodes
         for i_episode in range(num_episodes):
+            print("Episode {}".format(i_episode))
             observation = env.reset()
-            t = 0
+            total_reward = 0
             if decay is not None:
                 epsilon_use = epsilon * np.power(decay, i_episode)
             while True:  # repeat
@@ -154,6 +158,7 @@ def train(
                     action = env.action_space.sample()  # random sample of action space
                 # carry out action, observe new reward and state
                 observation_, reward, done, info = env.step(action)
+                total_reward += reward
                 # store experience in replay memory
                 terminal = 1 if done else 0
                 dataset.add_transition([observation, action, reward, observation_, terminal])
@@ -176,11 +181,11 @@ def train(
                     break
             dataset.flush()
 
+            summary_writer.add_scalar("RealReward", total_reward, i_episode)
+
             # log evaluation metrics
             if i_episode % freq_report_log == 0:
-                start_time = datetime.datetime.now()
                 log_evaluate(env, dqn, eval_episodes, summary_writer, i_episode)
-                print("Time to compute avgreward and qdiff {}".format((datetime.datetime.now() - start_time).total_seconds()))
             if i_episode % save_model_every == 0:
                 torch.save(dqn, "./models/{}/dqn_{}.pt".format(ident_string, i_episode))
 
@@ -229,9 +234,7 @@ def train(
 
         # log evaluation metrics
         if i % freq_report_log == 0:
-            start_time = datetime.datetime.now()
             log_evaluate(env, dqn, eval_episodes, summary_writer, i)
-            print("Time to compute avgreward and qdiff {}".format((datetime.datetime.now() - start_time).total_seconds()))
 
         if i% save_model_every == 0:
             torch.save(dqn, "./models/{}/dqn_{}.pt".format(ident_string, i))

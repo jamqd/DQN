@@ -57,6 +57,7 @@ def train(
     eval_episodes=16,
     gd_optimizer="RMSprop",
     num_episodes=50000,
+    decay = None
 ):
     """
     param:
@@ -109,6 +110,8 @@ def train(
     summary_writer = SummaryWriter()
 
     # gradient step every time a transition is collected
+    epsilon_use = epsilon
+
     if online:
         # initialize dataset
         observation = env.reset()
@@ -125,15 +128,18 @@ def train(
                                                  )
         dataset.add_transition(replay)
         dataset.flush()
+
         # go through episodes
         for i_episode in range(num_episodes):
             observation = env.reset()
             t = 0
+            if decay is not None:
+                epsilon_use = epsilon * np.power(decay, i_episode)
             while True:  # repeat
                 if render:
                     env.render()
                 # selecting an action
-                if dqn and random.random() > epsilon:
+                if dqn and random.random() > epsilon_use:
                     action = torch.squeeze(dqn.forward_best_actions([observation])[0]).item()
                 else:
                     action = env.action_space.sample()  # random sample of action space
@@ -208,7 +214,9 @@ def train(
 
         
         # collect trajectories
-        trajectories = collect_trajectories(env, episodes_per_iteration, sarsa=False, dqn=dqn, epsilon=np.power(epsilon, i))
+        if decay is not None:
+            epsilon_use = epsilon * np.power(decay, i)
+        trajectories = collect_trajectories(env, episodes_per_iteration, sarsa=False, dqn=dqn, epsilon=epsilon_use)
         dataset.add(trajectories)
 
 

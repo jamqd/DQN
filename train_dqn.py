@@ -67,8 +67,9 @@ def train(
         None
 
     """
-    for param in locals().keys():
-        print(f"Using {param}={locals()[param]}")
+    params = locals()
+    for param in params:
+        print(f"Using {param}={params[param]}")
 
     if not os.path.isdir("./models/"):
         os.mkdir("./models/")
@@ -227,7 +228,6 @@ def train(
 
         if i% save_model_every == 0:
             torch.save(dqn, "./models/" + str(datetime.datetime.now()).replace("-","_").replace(" ","_").replace(":",".") + ".pt")
-
 
     env.close()
 

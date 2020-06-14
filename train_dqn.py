@@ -274,6 +274,17 @@ def log_evaluate(env, dqn, num_episodes, summary_writer, iteration):
     # average difference between empirical q and q from network
     q_difference = q_diff(dqn, trajectories)
     summary_writer.add_scalar("QDiff", q_difference, iteration)
+
+    #average q value
+    #run the environment randomly, get the list of states
+    trajectories_random = collect_trajectories(env=env, episodes=num_episodes)
+    s = [sarsa[0] for traj in trajectories for sarsa in traj]
+    #q network on states
+    a, q = dqn.forward_best_actions(s)
+    avg_q = sum(q) / len(q)
+    summary_writer.add_scalar("AvgQ", avg_q, iteration)
+
+
    
 
 def q_diff(dqn, trajectories):

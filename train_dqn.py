@@ -87,7 +87,7 @@ def train(
  
     env = gym.make(env_name)
     if not isinstance(env.action_space, gym.spaces.discrete.Discrete):
-        print("Action space for env {} is not discrete".formt(env_name))
+        print("Action space for env {} is not discrete".format(env_name))
         raise ValueError
 
     print("Using env: {}".format(env_name))
@@ -117,7 +117,7 @@ def train(
     elif gd_optimizer == "RMSprop":
         optimizer = optim.RMSprop(dqn.parameters(), lr=learning_rate)
     else:
-        print("Invalid gd_optimizer: {}".formt(gd_optimizer))
+        print("Invalid gd_optimizer: {}".format(gd_optimizer))
         raise ValueError
 
     summary_writer = SummaryWriter(log_dir=f'./runs/{ident_string}')

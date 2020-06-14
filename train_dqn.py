@@ -81,6 +81,9 @@ def train(
     if not os.path.isdir("./meta_text/"):
         os.mkdir("./meta_text/")
 
+    if not os.path.isdir("./metrics/"):
+        os.mkdir("./metrics/")
+
     with open(f"./meta_text/{ident_string}.txt", "w+") as text_file:
         for param in params:
             text_file.write(f"{param}={params[param]}\n")
@@ -141,6 +144,8 @@ def train(
         dataset.add_transition(replay)
         dataset.flush()
 
+        metrics = []
+
         # go through episodes
         for i_episode in range(num_episodes):
             print("Episode {}".format(i_episode))
@@ -188,10 +193,13 @@ def train(
 
             # log evaluation metrics
             if i_episode % freq_report_log == 0:
-                log_evaluate(env, dqn, eval_episodes, summary_writer, i_episode)
+                undiscounted_avg_reward, q_difference = log_evaluate(env, dqn, eval_episodes, summary_writer, i_episode)
+                metrics.append([i_episode, undiscounted_avg_reward, q_difference, total_reward])
+            
             if i_episode % save_model_every == 0:
                 torch.save(dqn, "./models/{}/dqn_{}.pt".format(ident_string, i_episode))
 
+        np.save("./metrics/" ident_string + ".npy", np.array(metrics))
         env.close()
         return
 
@@ -204,6 +212,7 @@ def train(
         sampler=torch.utils.data.RandomSampler(dataset),
         )
 
+    metrics = []
     for i in range(iterations):
         if torch.cuda.is_available():
             print("Iteration {}, Transitions {}, MemAlloc {}".format(i, len(dataset), torch.cuda.memory_allocated()))
@@ -237,11 +246,13 @@ def train(
 
         # log evaluation metrics
         if i % freq_report_log == 0:
-            log_evaluate(env, dqn, eval_episodes, summary_writer, i)
+            undiscounted_avg_reward, q_difference = log_evaluate(env, dqn, eval_episodes, summary_writer, i)
+            metrics.append([i, undiscounted_avg_reward, q_difference])
 
         if i% save_model_every == 0:
             torch.save(dqn, "./models/{}/dqn_{}.pt".format(ident_string, i))
 
+    np.save("./metrics/" ident_string + ".npy", np.array(metrics))
     env.close()
 
 def unpack_dataloader_sarsd(sarsd, obs_space_dim):
@@ -274,6 +285,8 @@ def log_evaluate(env, dqn, num_episodes, summary_writer, iteration):
     # average difference between empirical q and q from network
     q_difference = q_diff(dqn, trajectories)
     summary_writer.add_scalar("QDiff", q_difference, iteration)
+
+    return undiscounted_avg_reward, q_difference
    
 
 def q_diff(dqn, trajectories):

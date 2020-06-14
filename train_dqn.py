@@ -193,8 +193,8 @@ def train(
 
             # log evaluation metrics
             if i_episode % freq_report_log == 0:
-                undiscounted_avg_reward, q_difference = log_evaluate(env, dqn, eval_episodes, summary_writer, i_episode)
-                metrics.append([i_episode, undiscounted_avg_reward, q_difference, total_reward])
+                undiscounted_avg_reward, q_difference, avg_q = log_evaluate(env, dqn, eval_episodes, summary_writer, i_episode)
+                metrics.append([i_episode, undiscounted_avg_reward, q_difference, avg_q, total_reward])
             
             if i_episode % save_model_every == 0:
                 torch.save(dqn, "./models/{}/dqn_{}.pt".format(ident_string, i_episode))
@@ -246,8 +246,8 @@ def train(
 
         # log evaluation metrics
         if i % freq_report_log == 0:
-            undiscounted_avg_reward, q_difference = log_evaluate(env, dqn, eval_episodes, summary_writer, i)
-            metrics.append([i, undiscounted_avg_reward, q_difference])
+            undiscounted_avg_reward, q_difference, avg_q = log_evaluate(env, dqn, eval_episodes, summary_writer, i)
+            metrics.append([i, undiscounted_avg_reward, q_difference, avg_q])
 
         if i% save_model_every == 0:
             torch.save(dqn, "./models/{}/dqn_{}.pt".format(ident_string, i))

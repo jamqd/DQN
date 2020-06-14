@@ -199,7 +199,7 @@ def train(
             if i_episode % save_model_every == 0:
                 torch.save(dqn, "./models/{}/dqn_{}.pt".format(ident_string, i_episode))
 
-        np.save("./metrics/" ident_string + ".npy", np.array(metrics))
+        np.save("./metrics/" + ident_string + ".npy", np.array(metrics))
         env.close()
         return
 
@@ -252,7 +252,7 @@ def train(
         if i% save_model_every == 0:
             torch.save(dqn, "./models/{}/dqn_{}.pt".format(ident_string, i))
 
-    np.save("./metrics/" ident_string + ".npy", np.array(metrics))
+    np.save("./metrics/" + ident_string + ".npy", np.array(metrics))
     env.close()
 
 def unpack_dataloader_sarsd(sarsd, obs_space_dim):

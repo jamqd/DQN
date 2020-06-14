@@ -1,5 +1,6 @@
 import argparse
 from train_dqn import train
+import constants
 
 def main():
     """
@@ -21,7 +22,7 @@ def main():
     """
 
     parser = argparse.ArgumentParser(description="train dqn and/or ddqn for comparison of approaches")
-    parser.add_argument('--learning_rate', dest='learning_rate', default=0.001, help="coefficient (alpha) for controlling learning rate", type=float)
+    parser.add_argument('--learning_rate', dest='learning_rate', default=constants.LEARNING_RATE, help="coefficient (alpha) for controlling learning rate", type=float)
     parser.add_argument('--discount_factor', dest='discount_factor', default=0.99, help="cofficient (gamma) to weight importance of newer samples", type=float)
     parser.add_argument('--env_name', dest = 'env_name', default="LunarLander-v2", help="name of the gym environment", type=str)
     parser.add_argument('--iterations', dest='iterations', default=1000, help="number of training iterations", type=int)

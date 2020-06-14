@@ -12,6 +12,7 @@ import os
 import datetime
 import qvalues
 import random
+import constants
 
 def compute_loss(s, a, r, s_prime, done, dqn, discount_factor, dqn_prime=None):
     """
@@ -24,9 +25,6 @@ def compute_loss(s, a, r, s_prime, done, dqn, discount_factor, dqn_prime=None):
     return:
         a scalar value representing the loss
     """
-    # if max(r) > 90:
-    #     print("Big R: {}".format(max(r)))
-
     N = len(s)
     q = dqn.forward(s)[torch.arange(N), a.long()]
     if dqn_prime: # using ddqn and target network
@@ -42,7 +40,7 @@ def compute_loss(s, a, r, s_prime, done, dqn, discount_factor, dqn_prime=None):
     return F.mse_loss(q, target.float())
 
 def train(
-    learning_rate=0.001,
+    learning_rate=constants.LEARNING_RATE,
     discount_factor=0.99,
     env_name="LunarLander-v2",
     iterations=50000,
@@ -112,12 +110,15 @@ def train(
             print("DQN Prime on GPU")
             dqn_prime = dqn_prime.cuda()
 
-    if gd_optimizer == "ADAM":
+    if gd_optimizer == "Adam":
         optimizer = optim.Adam(dqn.parameters(), lr=learning_rate)
     elif gd_optimizer == "SGD":
         optimizer = optim.SGD(dqn.parameters(), lr=learning_rate)
-    else:
+    elif gd_optimizer == "RMSprop":
         optimizer = optim.RMSprop(dqn.parameters(), lr=learning_rate)
+    else:
+        print("Invalid gd_optimizer: {}".formt(gd_optimizer))
+        raise ValueError
 
     summary_writer = SummaryWriter(log_dir=f'./runs/{ident_string}')
 
@@ -134,7 +135,6 @@ def train(
         dataset = TrajectoryDataset(replay, max_replay_history=max_replay_history)
         dataloader = torch.utils.data.DataLoader(dataset,
                                                  batch_size=batch_size,
-                                                 # shuffle=True,
                                                  num_workers=n_threads,
                                                  sampler=torch.utils.data.RandomSampler(dataset),
                                                  )

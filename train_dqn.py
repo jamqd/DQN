@@ -195,11 +195,12 @@ def train(
             if i_episode % freq_report_log == 0:
                 undiscounted_avg_reward, q_difference, avg_q = log_evaluate(env, dqn, eval_episodes, summary_writer, i_episode)
                 metrics.append([i_episode, undiscounted_avg_reward, q_difference, avg_q, total_reward])
+                np.save("./metrics/" + ident_string + ".npy", np.array(metrics))
             
             if i_episode % save_model_every == 0:
                 torch.save(dqn, "./models/{}/dqn_{}.pt".format(ident_string, i_episode))
 
-        np.save("./metrics/" + ident_string + ".npy", np.array(metrics))
+        
         env.close()
         return
 
@@ -248,11 +249,11 @@ def train(
         if i % freq_report_log == 0:
             undiscounted_avg_reward, q_difference, avg_q = log_evaluate(env, dqn, eval_episodes, summary_writer, i)
             metrics.append([i, undiscounted_avg_reward, q_difference, avg_q])
+            np.save("./metrics/" + ident_string + ".npy", np.array(metrics))
 
         if i% save_model_every == 0:
             torch.save(dqn, "./models/{}/dqn_{}.pt".format(ident_string, i))
 
-    np.save("./metrics/" + ident_string + ".npy", np.array(metrics))
     env.close()
 
 def unpack_dataloader_sarsd(sarsd, obs_space_dim):

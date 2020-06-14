@@ -148,6 +148,9 @@ def train(
             total_reward = 0
             if decay is not None:
                 epsilon_use = epsilon * np.power(decay, i_episode)
+            if use_ddqn and i_episode % copy_params_every == 0:
+                print("Copying dqn to dqn_prime")
+                dqn_prime.load_state_dict(dqn.state_dict())
             while True:  # repeat
                 if render:
                     env.render()
@@ -207,7 +210,7 @@ def train(
         else:
             print("Iteration {}, Transitions {}".format(i, len(dataset)))
         if use_ddqn and i % copy_params_every == 0:
-            print("Copying dqn to dqn_prim")
+            print("Copying dqn to dqn_prime")
             dqn_prime.load_state_dict(dqn.state_dict())
         
         # fitted Q-iteration

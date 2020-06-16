@@ -51,7 +51,6 @@ class DQN(nn.Module):
                 best_action: indexes of best action, shape: (N,)
                 best_q: Q(state, best_action), shpae: (N,)
         """
-
         q = self.forward(state)
         best_q, best_action = torch.max(q, 1)
         return best_action, best_q

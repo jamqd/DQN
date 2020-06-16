@@ -23,21 +23,14 @@ def cumulative_discounted_rewards(trajectories):
     all_rewards = []
 
     for i, trajectory_list in enumerate(trajectories):
-        # calculate reward per trajectory 
-        # print(f"i is {i}")
         curr_rewards = []
         
         for j, trajectory in enumerate(trajectory_list):
 
             state, action, reward, next_state, done = trajectory_list[0], trajectory[1], trajectory[2], trajectory[3], trajectory[4]
             discounted_return = 0
-            # print(trajectory)
-            # print("$$$$$")
-            # print(trajectory_list, len(trajectory_list))
             count = 0
             for k in range(j, len(trajectory_list)):
-                # print(discount_factor)
-                # print(len(trajectory_list) - 1 -k)
                 discounted_return += (discount_factor ** count) * trajectory_list[k][2]
                 count += 1
             

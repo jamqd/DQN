@@ -8,5 +8,4 @@ python ./main.py \
     --learning_rate 0.001 \
     --epsilon 0.995 \
     --discount_factor 0.99 \
-    --save_model_every 15
-    --copy_model_every 50
+    --save_model_every 15 \

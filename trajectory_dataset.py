@@ -24,9 +24,8 @@ class TrajectoryDataset(Dataset):
         self.trajectories = []
         self.buffer = []
         self.original_trajectories = []
-        self.trajectory_avg_reward = []
         self.max_replay_history = max_replay_history
-
+        self.transition_index = 0
 
         if online:
             self.add_transition(init)
@@ -95,11 +94,9 @@ class TrajectoryDataset(Dataset):
                 trajectories: list of trajectories. assumes each trajectory is a list of sarsa tuples 
             return:
         """
-        # self.trajectory_avg_reward = self.trajectory_avg_reward + [sum([sarsa[2] for sarsa in trajectory])/len(trajectory) for trajectory in trajectories]
-        self.trajectory_avg_reward = self.trajectory_avg_reward + [sum([sarsa[2] for sarsa in trajectory]) for trajectory in trajectories]
-        self.original_trajectories, self.trajectory_avg_reward = self.restructure_original(self.original_trajectories + trajectories, self.trajectory_avg_reward)
+        self.original_trajectories = self.restructure_original(self.original_trajectories + trajectories)
 
-    def restructure_original(self, trajectories, traj_avg_reward):
+    def restructure_original(self, trajectories):
         """
             param:
                 trajectories: list of trajectories composed of sarsa tuples
@@ -117,14 +114,13 @@ class TrajectoryDataset(Dataset):
             if idx_traj <= len(trajectories) - 1:
                 clipped_portion = trajectories[idx_traj][idx_start:]
                 if clipped_portion:
-                    return [clipped_portion] + trajectories[idx_traj + 1:], traj_avg_reward[idx_traj:]
-                    # return [clipped_portion] + trajectories[idx_traj + 1:], [sum([sarsa[2] for sarsa in clipped_portion])/len(clipped_portion)] + traj_avg_reward[idx_traj + 1:]
+                    return [clipped_portion] + trajectories[idx_traj + 1:]
                 else:
-                    return trajectories[idx_traj + 1:], traj_avg_reward[idx_traj + 1:]
+                    return trajectories[idx_traj + 1:]
             else:
-                return trajectories, traj_avg_reward
+                return trajectories
         else:
-            return trajectories, traj_avg_reward
+            return trajectories
 
     def get_trajectories(self):
         """
@@ -132,7 +128,7 @@ class TrajectoryDataset(Dataset):
             return:
                 trajectories in their original formatting
         """
-        return self.original_trajectories, self.trajectory_avg_reward
+        return self.original_trajectories
 
     def add_transition(self, transition):
         """
@@ -153,12 +149,16 @@ class TrajectoryDataset(Dataset):
 
         if self.transitions.size() == torch.Size([0]):
             self.transitions = trans_tensor.reshape([1,len(trans_tensor)])
+        elif len(self.transitions) == self.max_replay_history:
+            self.transitions[self.transition_index] = trans_tensor.reshape([1,len(trans_tensor)])
         else:
             self.transitions = torch.cat((self.transitions, trans_tensor.reshape([1,len(trans_tensor)])))
+        self.transition_index += 1 
+        self.transition_index = self.transition_index % self.max_replay_history
         
 
     def flush(self):
-        self.add_trajectories([self.buffer])
+        # self.add_trajectories([self.buffer])
         self.buffer = []
 
 #         Traceback (most recent call last):

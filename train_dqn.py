@@ -124,7 +124,7 @@ def train(
         raise ValueError
 
     summary_writer = SummaryWriter(log_dir=f'./runs/{ident_string}')
-
+    
     # gradient step every time a transition is collected
     epsilon_use = epsilon
 
@@ -148,7 +148,10 @@ def train(
 
         # go through episodes
         for i_episode in range(num_episodes):
-            print("Episode {}".format(i_episode))
+            if torch.cuda.is_available():
+                print("Episode {}, Transitions {}, MemAlloc {}".format(i_episode, len(dataset), torch.cuda.memory_allocated()))
+            else:
+                print("Episode {}, Transitions {}".format(i_episode, len(dataset)))
             observation = env.reset()
             total_reward = 0
             if decay is not None:
@@ -194,7 +197,7 @@ def train(
             # log evaluation metrics
             if i_episode % freq_report_log == 0:
                 undiscounted_avg_reward, q_difference, avg_q = log_evaluate(env, dqn, eval_episodes, summary_writer, i_episode)
-                metrics.append([i_episode, undiscounted_avg_reward, q_difference, avg_q, total_reward])
+                metrics.append([i_episode, undiscounted_avg_reward, q_difference, avg_q.cpu(), total_reward])
                 np.save("./metrics/" + ident_string + ".npy", np.array(metrics))
             
             if i_episode % save_model_every == 0:
@@ -224,6 +227,7 @@ def train(
             dqn_prime.load_state_dict(dqn.state_dict())
         
         # fitted Q-iteration
+
         sarsd = next(iter(dataloader))
         s, a, r, s_prime, done = unpack_dataloader_sarsd(sarsd, obs_space_dim)
 
@@ -277,36 +281,37 @@ def unpack_dataloader_sarsd(sarsd, obs_space_dim):
 
 
 def log_evaluate(env, dqn, num_episodes, summary_writer, iteration):
-    trajectories = collect_trajectories(env=env, episodes=num_episodes, dqn=dqn)
+    with torch.no_grad():
+        trajectories = collect_trajectories(env=env, episodes=num_episodes, dqn=dqn)
+        # average reward per trajectory
+        undiscounted_avg_reward = sum([sarsa[2] for traj in trajectories for sarsa in traj])/len(trajectories)
+        summary_writer.add_scalar("AvgReward", undiscounted_avg_reward, iteration) 
+        # average difference between empirical q and q from network
+        q_difference = q_diff(dqn, trajectories)
 
-    # average reward per trajectory
-    undiscounted_avg_reward = sum([sarsa[2] for traj in trajectories for sarsa in traj])/len(trajectories)
-    summary_writer.add_scalar("AvgReward", undiscounted_avg_reward, iteration) 
+        summary_writer.add_scalar("QDiff", q_difference, iteration)
 
-    # average difference between empirical q and q from network
-    q_difference = q_diff(dqn, trajectories)
-    summary_writer.add_scalar("QDiff", q_difference, iteration)
+        #average q value
+        #run the environment randomly, get the list of states
+        trajectories_random = collect_trajectories(env=env, episodes=num_episodes)
+    
+        s = [sarsa[0] for traj in trajectories for sarsa in traj]
+    
+        #q network on states
+        a, q = dqn.forward_best_actions(s)
 
-    #average q value
-    #run the environment randomly, get the list of states
-    trajectories_random = collect_trajectories(env=env, episodes=num_episodes)
-    s = [sarsa[0] for traj in trajectories for sarsa in traj]
-    #q network on states
-    a, q = dqn.forward_best_actions(s)
-    avg_q = sum(q) / len(q)
-    summary_writer.add_scalar("AvgQ", avg_q, iteration)
+        avg_q = sum(q) / len(q)    
+        summary_writer.add_scalar("AvgQ", avg_q, iteration)
 
-    return undiscounted_avg_reward, q_difference, avg_q
+
+        return undiscounted_avg_reward, q_difference, avg_q
    
 
 def q_diff(dqn, trajectories):
     s = [sarsa[0] for traj in trajectories for sarsa in traj]
     a = [sarsa[1] for traj in trajectories for sarsa in traj]
     N = len(s)
-    if torch.cuda.is_available():
-        q = dqn.forward(s).detach().cpu().numpy()[np.arange(N), a]
-    else:
-        q = dqn.forward(s).detach().numpy()[np.arange(N), a]
+    q = dqn.forward(s).detach().cpu().numpy()[np.arange(N), a]
     q_empirical = qvalues.cumulative_discounted_rewards(trajectories)
     q_empirical = np.concatenate([q_t for q_t in q_empirical])
     diff = q - q_empirical

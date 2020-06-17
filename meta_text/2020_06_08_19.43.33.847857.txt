@@ -1,1 +1,0 @@
-learning_rate=0.001discount_factor=0.99env_name=LunarLander-v2iterations=1000episodes_per_iteration=100use_ddqn=Falsebatch_size=32n_threads=0copy_params_every=100save_model_every=100max_replay_history=500000freq_report_log=5online=Trueepsilon=0.995render=Falseeval_episodes=16gd_optimizer=RMSpropnum_episodes=50000
